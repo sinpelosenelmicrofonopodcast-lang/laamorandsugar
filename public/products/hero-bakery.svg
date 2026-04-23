@@ -1,0 +1,11 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1000" fill="#FFF8F4"/>
+  <circle cx="295" cy="246" r="215" fill="#F9D9DE"/>
+  <circle cx="1295" cy="785" r="285" fill="#F2E0B7" fill-opacity="0.82"/>
+  <rect x="165" y="118" width="1270" height="764" rx="44" fill="white" fill-opacity="0.72" stroke="#F0E2D7"/>
+  <rect x="340" y="238" width="920" height="408" rx="48" fill="#FFF2F6"/>
+  <circle cx="575" cy="443" r="140" fill="#C59B45" fill-opacity="0.14"/>
+  <circle cx="808" cy="443" r="170" fill="#F8D9DD" fill-opacity="0.8"/>
+  <circle cx="1040" cy="443" r="140" fill="#C59B45" fill-opacity="0.14"/>
+  <text x="800" y="760" text-anchor="middle" fill="#D86D92" font-size="44" font-family="Arial, sans-serif" letter-spacing="10">CURATED DESSERT TABLE AESTHETIC</text>
+</svg>

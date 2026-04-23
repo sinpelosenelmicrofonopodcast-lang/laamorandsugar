@@ -1,0 +1,9 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="40" fill="#FFF8F4"/>
+  <circle cx="170" cy="145" r="170" fill="#F8D9DD" fill-opacity="0.7"/>
+  <circle cx="1040" cy="520" r="210" fill="#EEDCB1" fill-opacity="0.55"/>
+  <rect x="96" y="92" width="1008" height="446" rx="38" fill="white" fill-opacity="0.82" stroke="#F1E2D3"/>
+  <text x="600" y="255" text-anchor="middle" fill="#C59B45" font-size="86" font-family="Georgia, serif">L&amp;A Amor &amp;</text>
+  <text x="600" y="345" text-anchor="middle" fill="#D86D92" font-size="110" font-family="Georgia, serif">Sugar Co.</text>
+  <text x="600" y="420" text-anchor="middle" fill="#6B564D" font-size="32" font-family="Arial, sans-serif" letter-spacing="6">MADE WITH LOVE BY MOM &amp; HER GIRLS</text>
+</svg>

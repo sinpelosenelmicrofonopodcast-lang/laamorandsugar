@@ -1,0 +1,10 @@
+<svg width="1000" height="1200" viewBox="0 0 1000 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1200" rx="52" fill="#FFF8F4"/>
+  <circle cx="186" cy="205" r="175" fill="#F8D9DD" fill-opacity="0.85"/>
+  <circle cx="825" cy="1005" r="225" fill="#EACF91" fill-opacity="0.5"/>
+  <rect x="92" y="110" width="816" height="980" rx="44" fill="white" fill-opacity="0.8" stroke="#F0E2D7"/>
+  <path d="M300 436C300 344.366 374.366 270 466 270H534C625.634 270 700 344.366 700 436V462C700 553.634 625.634 628 534 628H466C374.366 628 300 553.634 300 462V436Z" fill="#F9E2E8"/>
+  <path d="M375 450C375 391.458 422.458 344 481 344H519C577.542 344 625 391.458 625 450V456C625 514.542 577.542 562 519 562H481C422.458 562 375 514.542 375 456V450Z" fill="#C59B45" fill-opacity="0.22"/>
+  <text x="500" y="760" text-anchor="middle" fill="#C59B45" font-size="62" font-family="Georgia, serif">Luxury Bakery</text>
+  <text x="500" y="830" text-anchor="middle" fill="#D86D92" font-size="34" font-family="Arial, sans-serif" letter-spacing="8">ELEGANT PLACEHOLDER</text>
+</svg>

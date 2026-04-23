@@ -1,0 +1,11 @@
+<svg width="1500" height="1100" viewBox="0 0 1500 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1500" height="1100" fill="#FFF8F4"/>
+  <circle cx="325" cy="882" r="240" fill="#F8D9DD"/>
+  <circle cx="1220" cy="210" r="190" fill="#EEDCB1" fill-opacity="0.7"/>
+  <rect x="130" y="110" width="1240" height="880" rx="52" fill="white" fill-opacity="0.76" stroke="#F0E2D7"/>
+  <rect x="268" y="258" width="964" height="554" rx="48" fill="#FFF2F6"/>
+  <circle cx="500" cy="525" r="162" fill="#F8D9DD"/>
+  <circle cx="742" cy="525" r="128" fill="#C59B45" fill-opacity="0.28"/>
+  <circle cx="1000" cy="525" r="162" fill="#F8D9DD"/>
+  <text x="750" y="905" text-anchor="middle" fill="#6B564D" font-size="40" font-family="Arial, sans-serif" letter-spacing="10">FAMILY MADE. BOUTIQUE PRESENTATION.</text>
+</svg>

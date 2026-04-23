@@ -1,0 +1,52 @@
+<svg width="1600" height="560" viewBox="0 0 1600 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glowCenter" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(820 280) rotate(90) scale(250 720)">
+      <stop stop-color="#FFFCEB"/>
+      <stop offset="0.45" stop-color="#FFF7F4"/>
+      <stop offset="1" stop-color="#FFF7F4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="roseGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1110 240) rotate(90) scale(140 280)">
+      <stop stop-color="#FFDDE8"/>
+      <stop offset="1" stop-color="#FFDDE8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldStroke" x1="370" y1="160" x2="860" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8AF5B"/>
+      <stop offset="0.5" stop-color="#B67A11"/>
+      <stop offset="1" stop-color="#E3C573"/>
+    </linearGradient>
+    <linearGradient id="roseStroke" x1="930" y1="180" x2="1370" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D93C70"/>
+      <stop offset="0.5" stop-color="#D8286D"/>
+      <stop offset="1" stop-color="#F2638B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="560" rx="28" fill="url(#glowCenter)"/>
+  <ellipse cx="810" cy="276" rx="590" ry="176" fill="url(#glowCenter)"/>
+  <ellipse cx="1120" cy="248" rx="220" ry="120" fill="url(#roseGlow)"/>
+
+  <g opacity="0.95">
+    <path d="M180 252C166 212 171 179 190 156C219 122 261 122 296 150C340 184 349 242 325 286C308 317 279 345 239 370C206 340 190 315 180 252Z" fill="#93C7A5"/>
+    <path d="M150 238C137 198 143 164 165 140C195 107 239 108 274 139C317 176 327 232 304 276C287 307 259 336 220 360C186 330 168 302 150 238Z" fill="#6CB18C" fill-opacity="0.55"/>
+    <path d="M203 257C225 233 264 230 291 247C324 269 333 311 312 342C295 367 267 381 230 389C200 358 187 329 203 257Z" fill="#F7B5C0"/>
+    <path d="M228 240C214 209 219 178 243 157C271 132 313 131 347 156C380 180 394 216 383 250C355 250 334 246 298 241C267 237 245 236 228 240Z" fill="#FFD0DA"/>
+    <circle cx="252" cy="276" r="54" fill="#FFDCE6"/>
+    <circle cx="252" cy="276" r="22" fill="#FF9A3D"/>
+    <path d="M252 223L259 256L293 248L268 273L293 304L259 295L252 329L244 295L210 304L236 274L210 248L244 256L252 223Z" fill="#F06088" fill-opacity="0.5"/>
+    <circle cx="325" cy="338" r="50" fill="#FFDCE6"/>
+    <circle cx="325" cy="338" r="18" fill="#FF9A3D"/>
+    <path d="M325 290L332 319L360 312L341 334L360 363L332 355L325 385L318 355L290 363L309 335L290 312L318 319L325 290Z" fill="#F06088" fill-opacity="0.5"/>
+    <path d="M331 403C353 382 389 381 414 396C437 410 450 432 448 458C411 459 377 450 331 403Z" fill="#D6D9B6" fill-opacity="0.8"/>
+  </g>
+
+  <text x="410" y="232" fill="url(#goldStroke)" font-size="88" font-family="Georgia, serif">L&amp;A</text>
+  <text x="522" y="274" fill="url(#goldStroke)" font-size="156" font-family="Brush Script MT, Snell Roundhand, cursive">Amor &amp;</text>
+  <text x="950" y="276" fill="url(#roseStroke)" font-size="164" font-family="Brush Script MT, Snell Roundhand, cursive">Sugar Co.</text>
+  <circle cx="1422" cy="186" r="7" fill="#F4C74D"/>
+  <circle cx="1388" cy="322" r="9" fill="#F4C74D"/>
+
+  <text x="560" y="410" fill="#A46717" font-size="54" font-family="Trebuchet MS, Arial, sans-serif" letter-spacing="4">
+    Made with love by mom &amp; her girls
+  </text>
+  <text x="1314" y="410" fill="#E04B78" font-size="36" font-family="Georgia, serif">✦</text>
+</svg>

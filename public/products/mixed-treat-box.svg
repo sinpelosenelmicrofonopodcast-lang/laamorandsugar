@@ -1,0 +1,11 @@
+<svg width="1000" height="1200" viewBox="0 0 1000 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1200" rx="52" fill="#FFF8F4"/>
+  <circle cx="180" cy="205" r="150" fill="#F8D9DD"/>
+  <circle cx="795" cy="965" r="250" fill="#EEDCB1" fill-opacity="0.6"/>
+  <rect x="110" y="108" width="780" height="984" rx="40" fill="white" fill-opacity="0.82"/>
+  <rect x="255" y="320" width="180" height="180" rx="36" fill="#F8D9DD"/>
+  <rect x="455" y="320" width="180" height="180" rx="90" fill="#D86D92" fill-opacity="0.72"/>
+  <rect x="300" y="540" width="400" height="120" rx="60" fill="#C59B45" fill-opacity="0.2"/>
+  <circle cx="720" cy="410" r="70" fill="#F5E1EA"/>
+  <text x="500" y="820" text-anchor="middle" fill="#C59B45" font-size="62" font-family="Georgia, serif">Mixed Treat Box</text>
+</svg>

@@ -1,0 +1,13 @@
+<svg width="1000" height="1200" viewBox="0 0 1000 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1200" rx="52" fill="#FFF8F4"/>
+  <circle cx="825" cy="260" r="165" fill="#F8D9DD"/>
+  <circle cx="215" cy="980" r="220" fill="#EFD9A7" fill-opacity="0.5"/>
+  <rect x="110" y="108" width="780" height="984" rx="40" fill="white" fill-opacity="0.82"/>
+  <circle cx="360" cy="430" r="82" fill="#F8D9DD"/>
+  <circle cx="500" cy="430" r="82" fill="#D86D92" fill-opacity="0.75"/>
+  <circle cx="640" cy="430" r="82" fill="#F8D9DD"/>
+  <rect x="280" y="495" width="160" height="120" rx="46" fill="#C59B45" fill-opacity="0.18"/>
+  <rect x="420" y="495" width="160" height="120" rx="46" fill="#C59B45" fill-opacity="0.28"/>
+  <rect x="560" y="495" width="160" height="120" rx="46" fill="#C59B45" fill-opacity="0.18"/>
+  <text x="500" y="835" text-anchor="middle" fill="#C59B45" font-size="58" font-family="Georgia, serif">Luxury Cupcake Box</text>
+</svg>
