@@ -125,6 +125,44 @@ async function insertProductVariants(
   throw error;
 }
 
+async function saveProductRecord(
+  supabase: any,
+  productId: string | undefined,
+  payload: Record<string, unknown>,
+  legacySafePayload: Record<string, unknown>
+) {
+  const query = productId
+    ? supabase.from("products").update(payload).eq("id", productId).select("id, slug").single()
+    : supabase.from("products").insert(payload).select("id, slug").single();
+
+  const { data, error } = await query;
+
+  if (!error) {
+    return { data, error: null };
+  }
+
+  if (
+    error.code === "PGRST204" &&
+    typeof error.message === "string" &&
+    (error.message.includes("nutrition_") || error.message.includes("'allergen_statement'"))
+  ) {
+    return productId
+      ? await supabase
+          .from("products")
+          .update(legacySafePayload)
+          .eq("id", productId)
+          .select("id, slug")
+          .single()
+      : await supabase
+          .from("products")
+          .insert(legacySafePayload)
+          .select("id, slug")
+          .single();
+  }
+
+  return { data: null, error };
+}
+
 export async function upsertCategoryAction(input: unknown) {
   try {
     await requireAdminAccess();
@@ -198,13 +236,7 @@ export async function upsertProductAction(input: unknown) {
       };
     }
 
-    const productPayload = {
-      category_id: values.category_id ?? null,
-      name: values.name,
-      slug: normalizedSlug,
-      short_description: normalizeString(values.short_description ?? null),
-      description: values.description,
-      sku: normalizeString(values.sku ?? null),
+    const nutritionPayload = {
       nutrition_serving_size: normalizeString(values.nutrition_serving_size ?? null),
       nutrition_servings_per_container: normalizeString(
         values.nutrition_servings_per_container ?? null
@@ -220,7 +252,15 @@ export async function upsertProductAction(input: unknown) {
               }))
               .sort((a, b) => a.sort_order - b.sort_order)
           : null,
-      allergen_statement: normalizeString(values.allergen_statement ?? null),
+      allergen_statement: normalizeString(values.allergen_statement ?? null)
+    };
+    const productPayloadBase = {
+      category_id: values.category_id ?? null,
+      name: values.name,
+      slug: normalizedSlug,
+      short_description: normalizeString(values.short_description ?? null),
+      description: values.description,
+      sku: normalizeString(values.sku ?? null),
       base_price:
         values.variants.find((variant) => variant.is_default)?.price ??
         values.variants[0]?.price ??
@@ -234,19 +274,17 @@ export async function upsertProductAction(input: unknown) {
       delivery_available: values.delivery_available,
       active: values.active
     };
+    const productPayload = {
+      ...productPayloadBase,
+      ...nutritionPayload
+    };
 
-    const { data: product, error: productError } = values.id
-      ? await supabase
-          .from("products")
-          .update(productPayload)
-          .eq("id", values.id)
-          .select("id, slug")
-          .single()
-      : await supabase
-          .from("products")
-          .insert(productPayload)
-          .select("id, slug")
-          .single();
+    const { data: product, error: productError } = await saveProductRecord(
+      supabase,
+      values.id,
+      productPayload,
+      productPayloadBase
+    );
 
     if (productError || !product) {
       throw productError ?? new Error("Unable to save product");
@@ -266,7 +304,7 @@ export async function upsertProductAction(input: unknown) {
       await insertProductVariants(
         supabase,
         product.id,
-        productPayload.base_price,
+        productPayloadBase.base_price,
         values.variants
       );
     }
@@ -297,22 +335,6 @@ export async function upsertProductAction(input: unknown) {
     return { success: true, productId: product.id };
   } catch (error) {
     console.error("upsertProductAction failed", error);
-
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === "PGRST204" &&
-      "message" in error &&
-      typeof error.message === "string" &&
-      error.message.includes("nutrition_")
-    ) {
-      return {
-        error:
-          "Nutrition facts fields are not in Supabase yet. Run the latest migration, then save the product again."
-      };
-    }
-
     return { error: getErrorMessage(error) };
   }
 }

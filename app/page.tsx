@@ -23,12 +23,18 @@ export default async function HomePage() {
     getTestimonials(),
     getActiveSeasonalSpecials()
   ]);
+  const heroPrimaryLabel = homepage.hero_primary_cta_label ?? "Shop treats";
+  const heroPrimaryHref = homepage.hero_primary_cta_href ?? "/shop";
+  const heroSecondaryLabel = homepage.hero_secondary_cta_label ?? "Custom Order";
+  const heroSecondaryHref = homepage.hero_secondary_cta_href ?? "/custom-orders";
 
   return (
     <div className="pb-24">
       <section className="container grid gap-10 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
-        <div className="relative rounded-[2.75rem] border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur sm:p-12">
+        <div className="fancy-border relative overflow-hidden rounded-[2.75rem] border border-white/60 bg-white/72 p-8 shadow-[0_28px_80px_rgba(120,85,63,0.14)] backdrop-blur sm:p-12">
           <div className="absolute inset-0 rounded-[inherit] bg-gold-ribbon opacity-60" />
+          <div className="absolute inset-x-10 top-0 h-40 rounded-full bg-[radial-gradient(circle,rgba(197,155,69,0.24),transparent_68%)] blur-3xl" />
+          <div className="absolute -left-12 bottom-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(248,217,221,0.6),transparent_66%)] blur-3xl" />
           <div className="relative">
             <div className="mb-8 max-w-[34rem]">
               <div className="relative h-24 w-full sm:h-28">
@@ -41,25 +47,25 @@ export default async function HomePage() {
                 />
               </div>
             </div>
-            <Badge variant="gold" className="mb-6">
-              {homepage.hero_eyebrow}
-            </Badge>
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <Badge variant="gold">{homepage.hero_eyebrow ?? "Luxury Dessert Studio"}</Badge>
+              <span className="rounded-full border border-white/80 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-bakery-espresso/80">
+                Made for gifting, showers, and celebrations
+              </span>
+            </div>
             <h1 className="max-w-3xl font-serif text-5xl leading-none tracking-tight text-foreground sm:text-6xl">
-              {homepage.hero_title}
+              {homepage.hero_title ?? "Premium sweets for moments worth remembering"}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              {homepage.hero_description}
+              {homepage.hero_description ??
+                "Boutique dessert boxes, strawberries, and custom treats styled to feel polished, thoughtful, and gift-ready."}
             </p>
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
               <Button asChild variant="gold" size="lg">
-                <a href={homepage.hero_primary_cta_href ?? "/shop"}>
-                  {homepage.hero_primary_cta_label}
-                </a>
+                <Link href={heroPrimaryHref}>{heroPrimaryLabel}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <a href={homepage.hero_secondary_cta_href ?? "/custom-orders"}>
-                  {homepage.hero_secondary_cta_label}
-                </a>
+                <Link href={heroSecondaryHref}>{heroSecondaryLabel}</Link>
               </Button>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -70,7 +76,7 @@ export default async function HomePage() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-[1.75rem] border border-white/70 bg-white/80 px-4 py-5"
+                  className="rounded-[1.75rem] border border-white/70 bg-white/82 px-4 py-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-white"
                 >
                   <item.icon className="h-5 w-5 text-bakery-gold" />
                   <p className="mt-3 text-sm font-medium text-foreground">{item.label}</p>

@@ -4,6 +4,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { Providers } from "@/components/site/providers";
+import { WhatsAppFloatButton } from "@/components/site/whatsapp-float-button";
 import { buildMetadata } from "@/lib/config/site";
 import { getHomepageContent, getSiteSettings } from "@/lib/data/queries";
 
@@ -42,6 +43,7 @@ export default async function RootLayout({
             <SiteHeader homepage={homepage} settings={settings} />
             <main className="flex-1">{children}</main>
             <SiteFooter settings={settings} />
+            <WhatsAppFloatButton />
           </div>
         </Providers>
       </body>
