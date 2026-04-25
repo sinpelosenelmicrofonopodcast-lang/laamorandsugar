@@ -60,6 +60,20 @@ export const loginSchema = z.object({
   password: z.string().min(8)
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email()
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string().min(8)
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"]
+  });
+
 export const categorySchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(2).max(80),
@@ -306,3 +320,5 @@ export type CustomOrderValues = z.infer<typeof customOrderSchema>;
 export type CheckoutValues = z.infer<typeof checkoutSchema>;
 export type HomepageValues = z.infer<typeof homepageSchema>;
 export type SiteSettingsValues = z.infer<typeof siteSettingsSchema>;
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;

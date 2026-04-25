@@ -2,39 +2,40 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { signInAction } from "@/actions/auth";
-import { loginSchema } from "@/lib/validations";
-import type { z } from "zod";
+import { requestPasswordResetAction } from "@/actions/auth";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordValues
+} from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type LoginValues = z.infer<typeof loginSchema>;
-
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
-  const searchParams = useSearchParams();
-  const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      email: "",
-      password: ""
+      email: ""
     }
   });
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const result = await signInAction(values);
+      const result = await requestPasswordResetAction(values);
 
-      if (result?.error) {
+      if (result.error) {
         toast.error(result.error);
+        return;
       }
+
+      toast.success(result.message);
+      form.reset();
     });
   });
 
@@ -42,34 +43,26 @@ export function LoginForm() {
     <Card className="mx-auto max-w-xl">
       <CardHeader>
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
-          Admin Access
+          Password Reset
         </p>
-        <CardTitle>Sign in to manage the bakery</CardTitle>
+        <CardTitle>Forgot your password?</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {searchParams.get("error") === "forbidden" ? (
-          <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            Your account does not have admin or staff access yet.
-          </p>
-        ) : null}
+        <p className="text-sm leading-6 text-muted-foreground">
+          Enter the email tied to your bakery admin account and we will send you a secure reset link.
+        </p>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...form.register("email")} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...form.register("password")} />
-          </div>
-          <div className="text-right">
-            <Link href="/forgot-password" className="text-sm font-medium text-bakery-rose">
-              Forgot your password?
-            </Link>
-          </div>
           <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
-            Sign in
+            Send reset link
           </Button>
         </form>
+        <Link href="/login" className="block text-center text-sm font-medium text-bakery-rose">
+          Back to sign in
+        </Link>
       </CardContent>
     </Card>
   );
