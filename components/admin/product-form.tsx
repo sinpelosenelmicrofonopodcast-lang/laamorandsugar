@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { type FieldErrors, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImagePlus, Plus, Trash2, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -101,6 +101,44 @@ function getDefaultValues(product?: ProductWithRelations | null): ProductFormVal
   };
 }
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null;
+  }
+
+  return <p className="text-sm text-destructive">{message}</p>;
+}
+
+function getFirstErrorMessage(errors: FieldErrors<ProductFormValues> | unknown): string | null {
+  if (!errors || typeof errors !== "object") {
+    return null;
+  }
+
+  if ("message" in errors && typeof errors.message === "string") {
+    return errors.message;
+  }
+
+  if (Array.isArray(errors)) {
+    for (const error of errors) {
+      const message = getFirstErrorMessage(error);
+      if (message) {
+        return message;
+      }
+    }
+
+    return null;
+  }
+
+  for (const error of Object.values(errors)) {
+    const message = getFirstErrorMessage(error);
+    if (message) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
 export function ProductForm({
   categories,
   product
@@ -120,21 +158,35 @@ export function ProductForm({
   const variants = useFieldArray({ control: form.control, name: "variants" });
   const addons = useFieldArray({ control: form.control, name: "addons" });
   const nutritionFacts = useFieldArray({ control: form.control, name: "nutrition_facts" });
+  const formErrorMessage =
+    form.formState.submitCount > 0
+      ? getFirstErrorMessage(form.formState.errors) ??
+        (Object.keys(form.formState.errors).length > 0
+          ? "Please review the highlighted fields before saving."
+          : null)
+      : null;
 
-  const onSubmit = form.handleSubmit((values) => {
-    startTransition(async () => {
-      const result = await upsertProductAction(values);
+  const onSubmit = form.handleSubmit(
+    (values) => {
+      startTransition(async () => {
+        const result = await upsertProductAction(values);
 
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
 
-      toast.success(product ? "Product updated" : "Product created");
-      router.push("/admin/products");
-      router.refresh();
-    });
-  });
+        toast.success(product ? "Product updated" : "Product created");
+        router.push("/admin/products");
+        router.refresh();
+      });
+    },
+    (errors) => {
+      toast.error(
+        getFirstErrorMessage(errors) ?? "Please review the highlighted fields before saving."
+      );
+    }
+  );
 
   const handleGenerate = () => {
     const name = form.getValues("name");
@@ -211,6 +263,12 @@ export function ProductForm({
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
+      {formErrorMessage ? (
+        <div className="rounded-[1.5rem] border border-destructive/25 bg-destructive/5 px-5 py-4 text-sm text-destructive">
+          We could not save the product yet. {formErrorMessage}
+        </div>
+      ) : null}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
@@ -228,10 +286,12 @@ export function ProductForm({
           <div className="space-y-2">
             <Label htmlFor="name">Product name</Label>
             <Input id="name" {...form.register("name")} />
+            <FieldError message={form.formState.errors.name?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="slug">Slug</Label>
             <Input id="slug" {...form.register("slug")} />
+            <FieldError message={form.formState.errors.slug?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="category_id">Category</Label>
@@ -291,10 +351,12 @@ export function ProductForm({
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="short_description">Short description</Label>
             <Textarea id="short_description" className="min-h-[110px]" {...form.register("short_description")} />
+            <FieldError message={form.formState.errors.short_description?.message} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Long description</Label>
             <Textarea id="description" className="min-h-[180px]" {...form.register("description")} />
+            <FieldError message={form.formState.errors.description?.message} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="allergen_statement">Allergen statement</Label>
@@ -303,6 +365,7 @@ export function ProductForm({
               placeholder="Ex. Contains milk, eggs, soy, and wheat"
               {...form.register("allergen_statement")}
             />
+            <FieldError message={form.formState.errors.allergen_statement?.message} />
           </div>
           <div className="flex flex-wrap gap-6 md:col-span-2">
             {[
@@ -359,6 +422,7 @@ export function ProductForm({
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <FieldError message={form.formState.errors.nutrition_facts?.message as string | undefined} />
           {nutritionFacts.fields.length === 0 ? (
             <div className="rounded-[1.25rem] border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
               Nutrition facts are optional, but adding them makes the product page more informative for clients.
@@ -388,6 +452,17 @@ export function ProductForm({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              <div className="md:col-span-5 space-y-1">
+                <FieldError
+                  message={form.formState.errors.nutrition_facts?.[index]?.label?.message}
+                />
+                <FieldError
+                  message={form.formState.errors.nutrition_facts?.[index]?.value?.message}
+                />
+                <FieldError
+                  message={form.formState.errors.nutrition_facts?.[index]?.daily_value?.message}
+                />
+              </div>
             </div>
           ))}
         </CardContent>
@@ -434,6 +509,7 @@ export function ProductForm({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <FieldError message={form.formState.errors.images?.message as string | undefined} />
           <div className="rounded-[1.25rem] border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
             Upload or paste between 1 and 3 images. Exactly one must be marked as primary.
           </div>
@@ -458,7 +534,10 @@ export function ProductForm({
                       return;
                     }
                     images.fields.forEach((_, imageIndex) => {
-                      form.setValue(`images.${imageIndex}.is_primary`, imageIndex === index);
+                      form.setValue(`images.${imageIndex}.is_primary`, imageIndex === index, {
+                        shouldDirty: true,
+                        shouldValidate: true
+                      });
                     });
                   }}
                 />
@@ -473,12 +552,22 @@ export function ProductForm({
                   images.remove(index);
                   const remainingImages = form.getValues("images");
                   if (wasPrimary && remainingImages.length > 0) {
-                    form.setValue("images.0.is_primary", true);
+                    form.setValue("images.0.is_primary", true, {
+                      shouldDirty: true,
+                      shouldValidate: true
+                    });
                   }
                 }}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              <div className="md:col-span-6 space-y-1">
+                <FieldError message={form.formState.errors.images?.[index]?.image_url?.message} />
+                <FieldError message={form.formState.errors.images?.[index]?.alt_text?.message} />
+                <FieldError
+                  message={form.formState.errors.images?.[index]?.sort_order?.message}
+                />
+              </div>
             </div>
           ))}
         </CardContent>
@@ -506,6 +595,7 @@ export function ProductForm({
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <FieldError message={form.formState.errors.variants?.message as string | undefined} />
           {variants.fields.map((field, index) => (
             <div key={field.id} className="grid gap-4 rounded-[1.5rem] border border-border p-4 md:grid-cols-[1fr_140px_140px_140px_120px_auto]">
               <Input placeholder="Name" {...form.register(`variants.${index}.name`)} />
@@ -520,15 +610,44 @@ export function ProductForm({
                       return;
                     }
                     variants.fields.forEach((_, variantIndex) => {
-                      form.setValue(`variants.${variantIndex}.is_default`, variantIndex === index);
+                      form.setValue(`variants.${variantIndex}.is_default`, variantIndex === index, {
+                        shouldDirty: true,
+                        shouldValidate: true
+                      });
                     });
                   }}
                 />
                 Default
               </label>
-              <Button type="button" variant="ghost" size="icon" onClick={() => variants.remove(index)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const wasDefault = Boolean(form.getValues(`variants.${index}.is_default`));
+                  variants.remove(index);
+                  const remainingVariants = form.getValues("variants");
+
+                  if (wasDefault && remainingVariants.length > 0) {
+                    form.setValue("variants.0.is_default", true, {
+                      shouldDirty: true,
+                      shouldValidate: true
+                    });
+                  }
+                }}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              <div className="md:col-span-6 space-y-1">
+                <FieldError message={form.formState.errors.variants?.[index]?.name?.message} />
+                <FieldError
+                  message={form.formState.errors.variants?.[index]?.quantity?.message}
+                />
+                <FieldError message={form.formState.errors.variants?.[index]?.price?.message} />
+                <FieldError
+                  message={form.formState.errors.variants?.[index]?.stock_quantity?.message}
+                />
+              </div>
             </div>
           ))}
         </CardContent>
@@ -572,6 +691,13 @@ export function ProductForm({
               <Button type="button" variant="ghost" size="icon" onClick={() => addons.remove(index)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
+              <div className="md:col-span-5 space-y-1">
+                <FieldError message={form.formState.errors.addons?.[index]?.name?.message} />
+                <FieldError
+                  message={form.formState.errors.addons?.[index]?.description?.message}
+                />
+                <FieldError message={form.formState.errors.addons?.[index]?.price?.message} />
+              </div>
             </div>
           ))}
         </CardContent>
