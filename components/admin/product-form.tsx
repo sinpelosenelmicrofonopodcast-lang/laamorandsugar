@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
+
 function getDefaultValues(product?: ProductWithRelations | null): ProductFormValues {
   return {
     id: product?.id,
@@ -225,6 +227,17 @@ export function ProductForm({
     }
 
     const selectedFiles = Array.from(files).slice(0, remainingSlots);
+
+    const oversizedFile = selectedFiles.find((file) => file.size > MAX_UPLOAD_SIZE_BYTES);
+
+    if (oversizedFile) {
+      toast.error(`"${oversizedFile.name}" is too large. Please use an image smaller than 4 MB.`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
     setIsUploadingImages(true);
 
     try {
@@ -512,6 +525,7 @@ export function ProductForm({
           <FieldError message={form.formState.errors.images?.message as string | undefined} />
           <div className="rounded-[1.25rem] border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
             Upload or paste between 1 and 3 images. Exactly one must be marked as primary.
+            Images must be smaller than 4 MB each for reliable uploads.
           </div>
           {images.fields.map((field, index) => (
             <div key={field.id} className="grid gap-4 rounded-[1.5rem] border border-border p-4 md:grid-cols-[140px_1.2fr_0.8fr_120px_120px_auto]">

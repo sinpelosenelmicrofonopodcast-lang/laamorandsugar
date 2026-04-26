@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
+const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Only image uploads are supported." },
         { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error:
+            "Image is too large. Please upload an image smaller than 4 MB."
+        },
+        { status: 413 }
       );
     }
 

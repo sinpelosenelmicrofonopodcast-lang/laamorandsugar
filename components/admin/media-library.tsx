@@ -9,11 +9,18 @@ import type { MediaAssetRow } from "@/lib/types/app";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
+
 export function MediaLibrary({ assets }: { assets: MediaAssetRow[] }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const upload = async (file: File) => {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      toast.error(`"${file.name}" is too large. Please use an image smaller than 4 MB.`);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("purpose", "admin");
