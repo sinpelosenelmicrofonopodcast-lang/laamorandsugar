@@ -61,6 +61,14 @@ export const loginSchema = z.object({
   password: z.string().min(8)
 });
 
+const paymentMethodSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  label: z.string().max(80),
+  account: z.string().max(160).optional().nullable(),
+  payment_url: z.string().max(400).optional().nullable(),
+  instructions: z.string().max(300).optional().nullable()
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email()
 });
@@ -372,7 +380,14 @@ export const siteSettingsSchema = z.object({
   delivery_zones: deliveryZonesSchema,
   pickup_instructions: z.string().max(500).optional().nullable(),
   free_delivery_threshold: z.coerce.number().min(0).optional().nullable(),
-  currency: z.string().length(3).default("USD")
+  currency: z.string().length(3).default("USD"),
+  payment_settings: z.object({
+    stripe: paymentMethodSettingsSchema,
+    paypal: paymentMethodSettingsSchema,
+    cash_app: paymentMethodSettingsSchema,
+    zelle: paymentMethodSettingsSchema,
+    manual_payment_note: z.string().max(300).optional().nullable()
+  })
 });
 
 export const updateOrderStatusSchema = z.object({
@@ -414,6 +429,7 @@ export const checkoutSchema = z.object({
   customer_email: z.string().email(),
   customer_phone: z.string().min(7).max(20),
   fulfillment_method: z.enum(FULFILLMENT_METHODS),
+  payment_method: z.enum(["stripe", "paypal", "cash_app", "zelle"]),
   fulfillment_date: z.string().min(1),
   fulfillment_time_slot: z.string().max(120).optional().nullable(),
   notes: z.string().max(800).optional().nullable(),

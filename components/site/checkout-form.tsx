@@ -7,16 +7,30 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { createCheckoutSessionAction } from "@/actions/store";
+import type { PaymentMethodCode, PaymentMethodSettings, SiteSettingsModel } from "@/lib/types/app";
 import { useCartStore } from "@/lib/store/cart-store";
 import { checkoutSchema, type CheckoutValues } from "@/lib/validations";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export function CheckoutForm() {
+type AvailablePaymentMethod = {
+  code: PaymentMethodCode;
+  settings: PaymentMethodSettings;
+  kind: "stripe" | "manual";
+};
+
+export function CheckoutForm({
+  settings,
+  paymentMethods
+}: {
+  settings: SiteSettingsModel;
+  paymentMethods: AvailablePaymentMethod[];
+}) {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
   const [isPending, startTransition] = useTransition();
@@ -32,6 +46,7 @@ export function CheckoutForm() {
       customer_email: "",
       customer_phone: "",
       fulfillment_method: "pickup",
+      payment_method: paymentMethods[0]?.code ?? "stripe",
       fulfillment_date: "",
       fulfillment_time_slot: "",
       notes: "",
@@ -46,6 +61,9 @@ export function CheckoutForm() {
   });
 
   const fulfillmentMethod = form.watch("fulfillment_method");
+  const selectedPaymentMethodCode = form.watch("payment_method");
+  const selectedPaymentMethod =
+    paymentMethods.find((method) => method.code === selectedPaymentMethodCode) ?? paymentMethods[0];
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -78,6 +96,19 @@ export function CheckoutForm() {
           <Button asChild variant="gold">
             <Link href="/shop">Shop now</Link>
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (paymentMethods.length === 0) {
+    return (
+      <Card>
+        <CardContent className="space-y-5 p-8 text-center">
+          <h2 className="font-serif text-4xl">Payment methods are not ready yet</h2>
+          <p className="text-muted-foreground">
+            Enable at least one payment method in the admin settings before taking checkout orders.
+          </p>
         </CardContent>
       </Card>
     );
@@ -133,6 +164,74 @@ export function CheckoutForm() {
               <Label htmlFor="coupon_code">Coupon</Label>
               <Input id="coupon_code" placeholder="SAVE10" {...form.register("coupon_code")} />
             </div>
+            <div className="space-y-3 md:col-span-2">
+              <Label>Payment method</Label>
+              <div className="grid gap-3">
+                {paymentMethods.map((method) => (
+                  <label
+                    key={method.code}
+                    className={`cursor-pointer rounded-[1.5rem] border p-4 transition ${
+                      selectedPaymentMethodCode === method.code
+                        ? "border-bakery-gold bg-bakery-gold/10"
+                        : "border-border bg-white/70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            value={method.code}
+                            checked={selectedPaymentMethodCode === method.code}
+                            onChange={() =>
+                              form.setValue("payment_method", method.code, {
+                                shouldDirty: true,
+                                shouldValidate: true
+                              })
+                            }
+                          />
+                          <span className="font-medium text-foreground">{method.settings.label}</span>
+                        </div>
+                        {method.settings.instructions ? (
+                          <p className="text-sm text-muted-foreground">
+                            {method.settings.instructions}
+                          </p>
+                        ) : null}
+                      </div>
+                      <Badge variant={method.kind === "stripe" ? "gold" : "rose"}>
+                        {method.kind === "stripe" ? "Online" : "Manual"}
+                      </Badge>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {selectedPaymentMethod?.kind === "manual" ? (
+                <div className="rounded-[1.5rem] border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+                  {selectedPaymentMethod.settings.account ? (
+                    <p>
+                      <span className="font-medium text-foreground">Send payment to:</span>{" "}
+                      {selectedPaymentMethod.settings.account}
+                    </p>
+                  ) : null}
+                  {selectedPaymentMethod.settings.payment_url ? (
+                    <p className="mt-2">
+                      <span className="font-medium text-foreground">Payment link:</span>{" "}
+                      <a
+                        href={selectedPaymentMethod.settings.payment_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-bakery-rose underline underline-offset-4"
+                      >
+                        Open payment link
+                      </a>
+                    </p>
+                  ) : null}
+                  {settings.payment_settings.manual_payment_note ? (
+                    <p className="mt-2">{settings.payment_settings.manual_payment_note}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             {fulfillmentMethod === "delivery" ? (
               <>
                 <div className="space-y-2 md:col-span-2">
@@ -169,7 +268,9 @@ export function CheckoutForm() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" variant="gold" size="lg" disabled={isPending}>
-                Continue to secure payment
+                {selectedPaymentMethod?.kind === "stripe"
+                  ? "Continue to secure payment"
+                  : "Place order and view payment instructions"}
               </Button>
             </div>
           </form>
@@ -206,6 +307,10 @@ export function CheckoutForm() {
                 {formatCurrency(subtotal)}
               </span>
             </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-border bg-white/70 px-4 py-4 text-sm text-muted-foreground">
+            Paying with <span className="font-medium text-foreground">{selectedPaymentMethod?.settings.label}</span>
+            {selectedPaymentMethod?.kind === "manual" ? " will create the order first and show you the payment details on the next screen." : " will redirect you to the secure card checkout."}
           </div>
         </CardContent>
       </Card>

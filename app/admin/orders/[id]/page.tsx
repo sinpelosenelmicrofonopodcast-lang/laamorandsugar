@@ -19,6 +19,18 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
+  const paymentMeta =
+    order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+      ? (order.metadata as {
+          payment_label?: string | null;
+          payment_kind?: string | null;
+          payment_account?: string | null;
+          payment_url?: string | null;
+          payment_instructions?: string | null;
+          manual_payment_note?: string | null;
+        })
+      : null;
+
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <Card>
@@ -47,6 +59,30 @@ export default async function AdminOrderDetailPage({
           <div>
             <p className="text-muted-foreground">Notes</p>
             <p>{order.notes ?? "No notes"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Payment</p>
+            <p className="font-medium">
+              {paymentMeta?.payment_label ??
+                (order.stripe_checkout_session_id ? "Stripe" : "Not specified")}
+            </p>
+            {paymentMeta?.payment_account ? <p>{paymentMeta.payment_account}</p> : null}
+            {paymentMeta?.payment_instructions ? (
+              <p className="text-muted-foreground">{paymentMeta.payment_instructions}</p>
+            ) : null}
+            {paymentMeta?.manual_payment_note ? (
+              <p className="text-muted-foreground">{paymentMeta.manual_payment_note}</p>
+            ) : null}
+            {paymentMeta?.payment_url ? (
+              <a
+                href={paymentMeta.payment_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-bakery-rose underline underline-offset-4"
+              >
+                Open payment link
+              </a>
+            ) : null}
           </div>
         </CardContent>
       </Card>

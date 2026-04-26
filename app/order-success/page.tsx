@@ -23,6 +23,17 @@ export default async function OrderSuccessPage({
 }: OrderSuccessPageProps) {
   const params = await searchParams;
   const order = params.order ? await getOrderById(params.order) : null;
+  const paymentMeta =
+    order?.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+      ? (order.metadata as {
+          payment_label?: string | null;
+          payment_kind?: string | null;
+          payment_account?: string | null;
+          payment_url?: string | null;
+          payment_instructions?: string | null;
+          manual_payment_note?: string | null;
+        })
+      : null;
 
   return (
     <div className="container py-16">
@@ -63,6 +74,39 @@ export default async function OrderSuccessPage({
                   </p>
                 </div>
               </div>
+            </div>
+          ) : null}
+          {paymentMeta?.payment_kind === "manual" ? (
+            <div className="rounded-[1.75rem] border border-bakery-gold/20 bg-bakery-gold/10 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-bakery-gold">
+                Payment Instructions
+              </p>
+              <h2 className="mt-3 font-serif text-3xl text-foreground">
+                Complete payment with {paymentMeta.payment_label ?? "your selected method"}
+              </h2>
+              {paymentMeta.payment_instructions ? (
+                <p className="mt-3 text-muted-foreground">{paymentMeta.payment_instructions}</p>
+              ) : null}
+              {paymentMeta.payment_account ? (
+                <p className="mt-3">
+                  <span className="font-medium text-foreground">Send payment to:</span>{" "}
+                  {paymentMeta.payment_account}
+                </p>
+              ) : null}
+              {paymentMeta.payment_url ? (
+                <div className="mt-4">
+                  <Button asChild variant="gold">
+                    <a href={paymentMeta.payment_url} target="_blank" rel="noreferrer">
+                      Open Payment Link
+                    </a>
+                  </Button>
+                </div>
+              ) : null}
+              {paymentMeta.manual_payment_note ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  {paymentMeta.manual_payment_note}
+                </p>
+              ) : null}
             </div>
           ) : null}
           <div className="flex flex-col gap-4 sm:flex-row">

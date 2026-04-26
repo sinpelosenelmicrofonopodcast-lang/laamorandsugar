@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { OneSignalScript } from "@/components/site/onesignal-script";
 import { Providers } from "@/components/site/providers";
 import { WhatsAppFloatButton } from "@/components/site/whatsapp-float-button";
 import { buildMetadata } from "@/lib/config/site";
@@ -37,6 +38,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${displayFont.variable} ${bodyFont.variable} font-sans antialiased`}>
+        <OneSignalScript />
         <Providers>
           <div className="relative flex min-h-screen flex-col">
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-hero-glow" />

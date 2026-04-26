@@ -684,6 +684,7 @@ export interface Database {
           pickup_instructions: string | null;
           free_delivery_threshold: number | null;
           currency: string;
+          payment_settings: Json | null;
           updated_at: string;
         };
         Insert: {
@@ -701,6 +702,7 @@ export interface Database {
           pickup_instructions?: string | null;
           free_delivery_threshold?: number | null;
           currency?: string;
+          payment_settings?: Json | null;
           updated_at?: string;
         };
         Update: {
@@ -717,6 +719,7 @@ export interface Database {
           pickup_instructions?: string | null;
           free_delivery_threshold?: number | null;
           currency?: string;
+          payment_settings?: Json | null;
           updated_at?: string;
         };
       };

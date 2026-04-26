@@ -658,9 +658,10 @@ export async function upsertSiteSettingsAction(input: unknown) {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()) as { data: Pick<SiteSettingsRow, "id"> | null };
+    const { payment_settings: paymentSettings, ...baseValues } = values;
 
-    const payload = {
-      ...values,
+    const legacyPayload = {
+      ...baseValues,
       tagline: normalizeString(values.tagline ?? null),
       support_email: normalizeString(values.support_email ?? null),
       support_phone: normalizeString(values.support_phone ?? null),
@@ -670,12 +671,26 @@ export async function upsertSiteSettingsAction(input: unknown) {
       address: normalizeString(values.address ?? null),
       pickup_instructions: normalizeString(values.pickup_instructions ?? null)
     };
+    const payload = {
+      ...legacyPayload,
+      payment_settings: paymentSettings
+    };
 
-    const query = existing?.id
-      ? supabase.from("site_settings").update(payload).eq("id", existing.id)
-      : supabase.from("site_settings").insert(payload);
+    const runQuery = (queryPayload: Record<string, unknown>) =>
+      existing?.id
+        ? supabase.from("site_settings").update(queryPayload).eq("id", existing.id)
+        : supabase.from("site_settings").insert(queryPayload);
 
-    const { error } = await query;
+    let { error } = await runQuery(payload);
+
+    if (
+      error?.code === "PGRST204" &&
+      typeof error.message === "string" &&
+      error.message.includes("'payment_settings'")
+    ) {
+      const legacyResult = await runQuery(legacyPayload);
+      error = legacyResult.error;
+    }
 
     if (error) {
       throw error;

@@ -14,6 +14,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const statuses = ["pending", "confirmed", "in_progress", "ready", "delivered", "canceled"] as const;
 
+function getPaymentLabel(order: OrderWithItems) {
+  if (order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)) {
+    const paymentLabel = (order.metadata as { payment_label?: string | null }).payment_label;
+    if (paymentLabel) {
+      return paymentLabel;
+    }
+  }
+
+  return order.stripe_checkout_session_id ? "Stripe" : "Pending";
+}
+
 export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
   const [isPending, startTransition] = useTransition();
 
@@ -29,6 +40,7 @@ export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
               <TableHead>Order</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Total</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
               <TableHead />
             </TableRow>
@@ -51,6 +63,9 @@ export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
                   </div>
                 </TableCell>
                 <TableCell>{formatCurrency(order.total)}</TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">{getPaymentLabel(order)}</span>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <StatusBadge status={order.status} />

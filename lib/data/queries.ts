@@ -4,6 +4,7 @@ import { isWithinInterval } from "date-fns";
 
 import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
 import { normalizeHomepageContent } from "@/lib/homepage";
+import { normalizeSiteSettings } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type {
@@ -21,7 +22,7 @@ import type {
 } from "@/lib/types/app";
 import { resolveImageUrl, resolveVariantPrice, resolveVariantQuantity } from "@/lib/utils";
 
-const fallbackSettings: SiteSettingsRow = {
+const fallbackSettings = normalizeSiteSettings({
   id: "fallback-settings",
   business_name: "L&A Amor & Sugar Co.",
   tagline: "Made with love by mom & her girls",
@@ -43,8 +44,9 @@ const fallbackSettings: SiteSettingsRow = {
   pickup_instructions: "Pickup details are shared after order confirmation.",
   free_delivery_threshold: 150,
   currency: "USD",
+  payment_settings: null,
   updated_at: new Date().toISOString()
-};
+} as SiteSettingsRow);
 
 const fallbackTestimonials: TestimonialRow[] = [
   {
@@ -154,7 +156,7 @@ export const getSiteSettings = cache(async () => {
     .limit(1)
     .maybeSingle();
 
-  return data ?? fallbackSettings;
+  return data ? normalizeSiteSettings(data as SiteSettingsRow) : fallbackSettings;
 });
 
 export const getCategories = cache(async () => {

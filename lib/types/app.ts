@@ -139,3 +139,25 @@ export type HomepageContentModel = Omit<HomepageContentRow, "content_json"> & {
 };
 
 export type HomepageContentJsonValue = Json;
+
+export type PaymentMethodCode = "stripe" | "paypal" | "cash_app" | "zelle";
+
+export type PaymentMethodSettings = {
+  enabled: boolean;
+  label: string;
+  account: string | null;
+  payment_url: string | null;
+  instructions: string | null;
+};
+
+export type PaymentSettings = {
+  stripe: PaymentMethodSettings;
+  paypal: PaymentMethodSettings;
+  cash_app: PaymentMethodSettings;
+  zelle: PaymentMethodSettings;
+  manual_payment_note: string | null;
+};
+
+export type SiteSettingsModel = Omit<SiteSettingsRow, "payment_settings"> & {
+  payment_settings: PaymentSettings;
+};

@@ -6,6 +6,7 @@ import type Stripe from "stripe";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { getAvailablePaymentMethods } from "@/lib/payments";
 import { getStripe } from "@/lib/stripe";
 import { getSiteSettings } from "@/lib/data/queries";
 import type { ProductRow } from "@/lib/types/app";
@@ -86,16 +87,22 @@ export async function createCheckoutSessionAction(input: unknown) {
       };
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return {
-        error: "Stripe is not configured yet."
-      };
-    }
-
     const values = checkoutSchema.parse(input);
     const supabase = createAdminClient() as any;
-    const stripe = getStripe();
     const settings = await getSiteSettings();
+    const paymentMethods = getAvailablePaymentMethods(
+      settings,
+      Boolean(process.env.STRIPE_SECRET_KEY)
+    );
+    const selectedPaymentMethod = paymentMethods.find(
+      (method) => method.code === values.payment_method
+    );
+
+    if (!selectedPaymentMethod) {
+      return {
+        error: "That payment method is not available right now."
+      };
+    }
 
     const productIds = [...new Set(values.items.map((item) => item.productId))];
     const variantIds = [
@@ -292,7 +299,14 @@ export async function createCheckoutSessionAction(input: unknown) {
             }
           : null,
       metadata: {
-        coupon_code: values.coupon_code ?? null
+        coupon_code: values.coupon_code ?? null,
+        payment_method: values.payment_method,
+        payment_label: selectedPaymentMethod.settings.label,
+        payment_kind: selectedPaymentMethod.kind,
+        payment_account: selectedPaymentMethod.settings.account,
+        payment_url: selectedPaymentMethod.settings.payment_url,
+        payment_instructions: selectedPaymentMethod.settings.instructions,
+        manual_payment_note: settings.payment_settings.manual_payment_note
       }
     });
 
@@ -310,6 +324,21 @@ export async function createCheckoutSessionAction(input: unknown) {
     if (orderItemsError) {
       throw orderItemsError;
     }
+
+    if (selectedPaymentMethod.kind === "manual") {
+      return {
+        success: true,
+        url: `${getSiteUrl()}/order-success?order=${orderId}`
+      };
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return {
+        error: "Stripe is not configured yet."
+      };
+    }
+
+    const stripe = getStripe();
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
