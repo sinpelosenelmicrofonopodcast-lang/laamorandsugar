@@ -152,6 +152,7 @@ export function ProductForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: getDefaultValues(product)
@@ -161,32 +162,43 @@ export function ProductForm({
   const addons = useFieldArray({ control: form.control, name: "addons" });
   const nutritionFacts = useFieldArray({ control: form.control, name: "nutrition_facts" });
   const formErrorMessage =
-    form.formState.submitCount > 0
+    submitMessage ??
+    (form.formState.submitCount > 0
       ? getFirstErrorMessage(form.formState.errors) ??
         (Object.keys(form.formState.errors).length > 0
           ? "Please review the highlighted fields before saving."
           : null)
-      : null;
+      : null);
 
   const onSubmit = form.handleSubmit(
     (values) => {
       startTransition(async () => {
-        const result = await upsertProductAction(values);
+        try {
+          setSubmitMessage(null);
+          const result = await upsertProductAction(values);
 
-        if (result.error) {
-          toast.error(result.error);
-          return;
+          if (result.error) {
+            setSubmitMessage(result.error);
+            toast.error(result.error);
+            return;
+          }
+
+          setSubmitMessage(null);
+          toast.success(product ? "Product updated" : "Product created");
+          router.push("/admin/products");
+          router.refresh();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unable to save product.";
+          setSubmitMessage(message);
+          toast.error(message);
         }
-
-        toast.success(product ? "Product updated" : "Product created");
-        router.push("/admin/products");
-        router.refresh();
       });
     },
     (errors) => {
-      toast.error(
-        getFirstErrorMessage(errors) ?? "Please review the highlighted fields before saving."
-      );
+      const message =
+        getFirstErrorMessage(errors) ?? "Please review the highlighted fields before saving.";
+      setSubmitMessage(message);
+      toast.error(message);
     }
   );
 
