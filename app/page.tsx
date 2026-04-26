@@ -101,7 +101,7 @@ function mapMediaAssetsToGallery(
     .map((asset) => ({
       image_url: asset.public_url as string,
       alt_text: asset.file_name,
-      title: asset.file_name,
+      title: null,
       caption: null,
       description: null,
       asset_id: asset.id

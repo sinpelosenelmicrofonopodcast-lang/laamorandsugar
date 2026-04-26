@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import type { MediaAssetRow } from "@/lib/types/app";
@@ -14,6 +14,7 @@ const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
 export function MediaLibrary({ assets }: { assets: MediaAssetRow[] }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const upload = async (file: File) => {
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
@@ -43,6 +44,36 @@ export function MediaLibrary({ assets }: { assets: MediaAssetRow[] }) {
       toast.error(error instanceof Error ? error.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const removeAsset = async (asset: MediaAssetRow) => {
+    const confirmed = window.confirm(
+      `Delete "${asset.file_name}" from the media library? This also removes the file from storage.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(asset.id);
+
+    try {
+      const response = await fetch(`/api/media/${asset.id}`, {
+        method: "DELETE"
+      });
+      const json = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(json.error ?? "Unable to delete media asset");
+      }
+
+      toast.success("Media deleted");
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete media asset");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -80,9 +111,22 @@ export function MediaLibrary({ assets }: { assets: MediaAssetRow[] }) {
                     className="object-cover"
                   />
                 </div>
-                <div className="space-y-1 p-4">
-                  <p className="truncate font-medium text-foreground">{asset.file_name}</p>
-                  <p className="text-xs text-muted-foreground">{asset.storage_path}</p>
+                <div className="space-y-3 p-4">
+                  <div className="space-y-1">
+                    <p className="truncate font-medium text-foreground">{asset.file_name}</p>
+                    <p className="text-xs text-muted-foreground">{asset.storage_path}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void removeAsset(asset)}
+                    disabled={deletingId === asset.id}
+                    className="w-full"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deletingId === asset.id ? "Deleting..." : "Delete"}
+                  </Button>
                 </div>
               </div>
             ))}

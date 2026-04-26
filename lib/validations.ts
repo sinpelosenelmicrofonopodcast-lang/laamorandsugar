@@ -226,7 +226,12 @@ const homepageImageAssetSchema = z.object({
   title: z.string().max(120).optional().nullable(),
   caption: z.string().max(200).optional().nullable(),
   description: z.string().max(400).optional().nullable(),
-  asset_id: z.string().uuid().optional().nullable()
+  asset_id: z
+    .preprocess(
+      (value) =>
+        typeof value === "string" && value.trim().length === 0 ? null : value,
+      z.string().min(1).optional().nullable()
+    )
 });
 
 const homepageStepSchema = z.object({
@@ -285,7 +290,7 @@ export const homepageSchema = z.object({
       .min(1),
     featured: z.object({
       is_enabled: z.boolean().default(true),
-      product_ids: z.array(z.string().uuid()).default([])
+      product_ids: z.array(z.string().min(1)).default([])
     }),
     custom_orders: z.object({
       is_enabled: z.boolean().default(true),
@@ -310,8 +315,8 @@ export const homepageSchema = z.object({
       image_alt: z.string().max(180),
       button_text: z.string().min(1).max(60),
       button_link: z.string().min(1).max(180),
-      product_ids: z.array(z.string().uuid()).default([]),
-      special_ids: z.array(z.string().uuid()).default([])
+      product_ids: z.array(z.string().min(1)).default([]),
+      special_ids: z.array(z.string().min(1)).default([])
     }),
     trust: z.object({
       is_enabled: z.boolean().default(true),
@@ -321,7 +326,7 @@ export const homepageSchema = z.object({
     }),
     testimonials: z.object({
       is_enabled: z.boolean().default(true),
-      selected_ids: z.array(z.string().uuid()).default([])
+      selected_ids: z.array(z.string().min(1)).default([])
     }),
     gallery: z.object({
       is_enabled: z.boolean().default(true),
