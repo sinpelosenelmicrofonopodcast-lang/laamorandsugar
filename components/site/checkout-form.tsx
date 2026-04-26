@@ -11,6 +11,7 @@ import type { PaymentMethodCode, PaymentMethodSettings, SiteSettingsModel } from
 import { useCartStore } from "@/lib/store/cart-store";
 import { checkoutSchema, type CheckoutValues } from "@/lib/validations";
 import { formatCurrency } from "@/lib/utils";
+import { PayPalCheckoutButton } from "@/components/site/paypal-checkout-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 type AvailablePaymentMethod = {
   code: PaymentMethodCode;
   settings: PaymentMethodSettings;
-  kind: "stripe" | "manual";
+  kind: "stripe" | "manual" | "paypal_live";
 };
 
 export function CheckoutForm({
@@ -64,6 +65,7 @@ export function CheckoutForm({
   const selectedPaymentMethodCode = form.watch("payment_method");
   const selectedPaymentMethod =
     paymentMethods.find((method) => method.code === selectedPaymentMethodCode) ?? paymentMethods[0];
+  const isPayPalLiveSelected = selectedPaymentMethod?.kind === "paypal_live";
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -199,7 +201,11 @@ export function CheckoutForm({
                         ) : null}
                       </div>
                       <Badge variant={method.kind === "stripe" ? "gold" : "rose"}>
-                        {method.kind === "stripe" ? "Online" : "Manual"}
+                        {method.kind === "stripe"
+                          ? "Online"
+                          : method.kind === "paypal_live"
+                            ? "PayPal"
+                            : "Manual"}
                       </Badge>
                     </div>
                   </label>
@@ -267,11 +273,30 @@ export function CheckoutForm({
               <Textarea id="notes" {...form.register("notes")} />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit" variant="gold" size="lg" disabled={isPending}>
-                {selectedPaymentMethod?.kind === "stripe"
-                  ? "Continue to secure payment"
-                  : "Place order and view payment instructions"}
-              </Button>
+              {isPayPalLiveSelected ? (
+                <PayPalCheckoutButton
+                  active
+                  preparePayload={async () => {
+                    const isValid = await form.trigger();
+                    if (!isValid) {
+                      toast.error("Please complete the checkout form before paying with PayPal.");
+                      return null;
+                    }
+
+                    return {
+                      ...form.getValues(),
+                      items
+                    };
+                  }}
+                  onSuccess={clearCart}
+                />
+              ) : (
+                <Button type="submit" variant="gold" size="lg" disabled={isPending}>
+                  {selectedPaymentMethod?.kind === "stripe"
+                    ? "Continue to secure payment"
+                    : "Place order and view payment instructions"}
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>
@@ -310,7 +335,11 @@ export function CheckoutForm({
           </div>
           <div className="rounded-[1.25rem] border border-border bg-white/70 px-4 py-4 text-sm text-muted-foreground">
             Paying with <span className="font-medium text-foreground">{selectedPaymentMethod?.settings.label}</span>
-            {selectedPaymentMethod?.kind === "manual" ? " will create the order first and show you the payment details on the next screen." : " will redirect you to the secure card checkout."}
+            {selectedPaymentMethod?.kind === "manual"
+              ? " will create the order first and show you the payment details on the next screen."
+              : selectedPaymentMethod?.kind === "paypal_live"
+                ? " will open the secure PayPal checkout popup."
+                : " will redirect you to the secure card checkout."}
           </div>
         </CardContent>
       </Card>

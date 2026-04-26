@@ -1,7 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { LayoutDashboard, ImageIcon, Layers3, MessageSquareQuote, Package2, Settings, ShoppingBag, Sparkles, Tags, TicketPercent } from "lucide-react";
+import { Heart, LayoutDashboard, ImageIcon, Layers3, MessageSquareQuote, Package2, Settings, ShoppingBag, Sparkles, Tags, TicketPercent } from "lucide-react";
 
 import { BrandMark } from "@/components/site/brand-mark";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const adminNav = [
   { href: "/admin/custom-orders", label: "Custom Orders", icon: Sparkles },
   { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
   { href: "/admin/homepage", label: "Homepage", icon: Tags },
+  { href: "/admin/about", label: "About Page", icon: Heart },
   { href: "/admin/specials", label: "Seasonal Specials", icon: Sparkles },
   { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/admin/media", label: "Media Library", icon: ImageIcon },

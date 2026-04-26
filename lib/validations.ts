@@ -2,9 +2,11 @@ import { z } from "zod";
 
 import {
   CUSTOM_ORDER_STATUSES,
+  CUSTOMER_ORDER_STATUS_VALUES,
   DISCOUNT_TYPES,
   FULFILLMENT_METHODS,
   ORDER_STATUSES,
+  PAYMENT_STATUS_VALUES,
   PRODUCT_STATUS,
   USER_ROLES
 } from "@/lib/constants";
@@ -213,6 +215,50 @@ export const testimonialSchema = z.object({
   sort_order: z.coerce.number().int().min(0).default(0)
 });
 
+const aboutGalleryImageSchema = z.object({
+  image_url: z.string().max(400).optional().nullable().transform((value) => value ?? ""),
+  alt_text: z.string().max(180).optional().nullable().transform((value) => value ?? "")
+});
+
+const aboutHighlightCardSchema = z.object({
+  title: z.string().min(1).max(80),
+  text: z.string().min(1).max(220)
+});
+
+export const aboutPageSchema = z.object({
+  hero_eyebrow: z.string().min(1).max(80),
+  hero_title: z.string().min(1).max(140),
+  hero_text: z.string().min(1).max(500),
+  hero_image_url: z.string().max(400).optional().nullable(),
+  hero_image_alt: z.string().max(180).optional().nullable(),
+  section_one_title: z.string().min(1).max(140),
+  section_one_text: z.string().min(1).max(600),
+  section_two_title: z.string().min(1).max(140),
+  section_two_text: z.string().min(1).max(600),
+  style_title: z.string().min(1).max(140),
+  style_text: z.string().min(1).max(500),
+  cta_title: z.string().min(1).max(140),
+  cta_text: z.string().min(1).max(400),
+  cta_button_text: z.string().min(1).max(60),
+  cta_button_link: z.string().min(1).max(180),
+  gallery_images: z.array(aboutGalleryImageSchema).max(6),
+  highlight_cards: z.array(aboutHighlightCardSchema).min(1).max(4)
+}).superRefine((value, ctx) => {
+  if (
+    value.gallery_images.some((image) => {
+      const hasUrl = image.image_url.trim().length > 0;
+      const hasAlt = image.alt_text.trim().length > 0;
+      return hasUrl !== hasAlt;
+    })
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Each gallery image needs both an image URL and alt text.",
+      path: ["gallery_images"]
+    });
+  }
+});
+
 export const seasonalSpecialSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(2).max(120),
@@ -395,6 +441,47 @@ export const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUSES)
 });
 
+export const updateCustomerOrderWorkflowSchema = z.object({
+  orderId: z.string().uuid(),
+  order_status: z.enum(CUSTOMER_ORDER_STATUS_VALUES),
+  note: z.string().max(600).optional().nullable(),
+  customer_visible: z.boolean().default(true),
+  estimated_ready_at: z.string().optional().nullable(),
+  pickup_date: z.string().optional().nullable(),
+  delivery_date: z.string().optional().nullable(),
+  internal_notes: z.string().max(2000).optional().nullable(),
+  payment_status: z.enum(PAYMENT_STATUS_VALUES).optional().nullable()
+});
+
+export const orderMessageSchema = z.object({
+  orderId: z.string().uuid(),
+  message_body: z.string().min(1).max(2000),
+  attachment_url: z.string().max(400).optional().nullable(),
+  customer_visible: z.boolean().default(true)
+});
+
+export const customerOrderMessageSchema = z.object({
+  order_token: z.string().min(20),
+  message_body: z.string().min(1).max(2000),
+  attachment_url: z.string().max(400).optional().nullable()
+});
+
+export const orderLookupSchema = z
+  .object({
+    order_number: z.string().min(4).max(40),
+    email: z.string().email().optional().or(z.literal("")).nullable(),
+    phone: z.string().min(7).max(20).optional().or(z.literal("")).nullable()
+  })
+  .refine((value) => Boolean(value.email?.trim() || value.phone?.trim()), {
+    message: "Enter the email or phone number used on the order.",
+    path: ["email"]
+  });
+
+export const saveOrderPushSubscriptionSchema = z.object({
+  order_token: z.string().min(20),
+  subscription_id: z.string().min(1).max(200)
+});
+
 export const updateCustomOrderStatusSchema = z.object({
   customOrderId: z.string().uuid(),
   status: z.enum(CUSTOM_ORDER_STATUSES)
@@ -429,7 +516,7 @@ export const checkoutSchema = z.object({
   customer_email: z.string().email(),
   customer_phone: z.string().min(7).max(20),
   fulfillment_method: z.enum(FULFILLMENT_METHODS),
-  payment_method: z.enum(["stripe", "paypal", "cash_app", "zelle"]),
+  payment_method: z.enum(["stripe", "paypal_live", "paypal", "cash_app", "zelle"]),
   fulfillment_date: z.string().min(1),
   fulfillment_time_slot: z.string().max(120).optional().nullable(),
   notes: z.string().max(800).optional().nullable(),
@@ -455,6 +542,8 @@ export type CategoryFormValues = z.infer<typeof categorySchema>;
 export type CouponFormValues = z.infer<typeof couponSchema>;
 export type CustomOrderValues = z.infer<typeof customOrderSchema>;
 export type CheckoutValues = z.infer<typeof checkoutSchema>;
+export type OrderLookupValues = z.infer<typeof orderLookupSchema>;
+export type AboutPageValues = z.infer<typeof aboutPageSchema>;
 export type HomepageValues = z.infer<typeof homepageSchema>;
 export type SiteSettingsValues = z.infer<typeof siteSettingsSchema>;
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;

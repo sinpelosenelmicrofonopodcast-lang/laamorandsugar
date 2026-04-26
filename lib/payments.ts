@@ -96,12 +96,13 @@ export function normalizeSiteSettings(row: SiteSettingsRow): SiteSettingsModel {
 
 export function getAvailablePaymentMethods(
   settings: SiteSettingsModel,
-  hasStripeSecretKey: boolean
+  hasStripeSecretKey: boolean,
+  hasPayPalLive = false
 ) {
   const methods: {
     code: PaymentMethodCode;
     settings: PaymentMethodSettings;
-    kind: "stripe" | "manual";
+    kind: "stripe" | "manual" | "paypal_live";
   }[] = [];
 
   if (settings.payment_settings.stripe.enabled && hasStripeSecretKey) {
@@ -109,6 +110,20 @@ export function getAvailablePaymentMethods(
       code: "stripe",
       settings: settings.payment_settings.stripe,
       kind: "stripe"
+    });
+  }
+
+  if (hasPayPalLive) {
+    methods.push({
+      code: "paypal_live",
+      settings: {
+        enabled: true,
+        label: "PayPal",
+        account: null,
+        payment_url: null,
+        instructions: "Pay securely with your PayPal account."
+      },
+      kind: "paypal_live"
     });
   }
 

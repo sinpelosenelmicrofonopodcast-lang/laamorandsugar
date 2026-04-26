@@ -7,6 +7,20 @@ export const ORDER_STATUSES = [
   "canceled"
 ] as const;
 
+export const CUSTOMER_ORDER_STATUS_VALUES = [
+  "pending_review",
+  "confirmed",
+  "payment_pending",
+  "paid",
+  "in_progress",
+  "ready_for_pickup",
+  "out_for_delivery",
+  "completed",
+  "cancelled"
+] as const;
+
+export const PAYMENT_STATUS_VALUES = ["pending", "paid", "failed", "refunded"] as const;
+
 export const CUSTOM_ORDER_STATUSES = [
   "new",
   "reviewing",

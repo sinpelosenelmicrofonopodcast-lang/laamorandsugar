@@ -310,20 +310,34 @@ export interface Database {
             | "ready"
             | "delivered"
             | "canceled";
+          order_status: string | null;
+          order_access_token: string | null;
           fulfillment_method: "pickup" | "delivery";
           fulfillment_date: string;
           fulfillment_time_slot: string | null;
+          pickup_date: string | null;
+          delivery_date: string | null;
+          estimated_ready_at: string | null;
           notes: string | null;
+          internal_notes: string | null;
           subtotal: number;
           discount_total: number;
           delivery_fee: number;
           tax_total: number;
           total: number;
           coupon_id: string | null;
+          payment_provider: string | null;
+          payment_status: string | null;
           stripe_payment_intent_id: string | null;
           stripe_checkout_session_id: string | null;
+          paypal_order_id: string | null;
+          paypal_capture_id: string | null;
+          paid_at: string | null;
+          payment_response: Json | null;
           shipping_address: Json | null;
           metadata: Json | null;
+          last_customer_message_at: string | null;
+          last_admin_message_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -341,20 +355,34 @@ export interface Database {
             | "ready"
             | "delivered"
             | "canceled";
+          order_status?: string | null;
+          order_access_token?: string | null;
           fulfillment_method: "pickup" | "delivery";
           fulfillment_date: string;
           fulfillment_time_slot?: string | null;
+          pickup_date?: string | null;
+          delivery_date?: string | null;
+          estimated_ready_at?: string | null;
           notes?: string | null;
+          internal_notes?: string | null;
           subtotal: number;
           discount_total?: number;
           delivery_fee?: number;
           tax_total?: number;
           total: number;
           coupon_id?: string | null;
+          payment_provider?: string | null;
+          payment_status?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_checkout_session_id?: string | null;
+          paypal_order_id?: string | null;
+          paypal_capture_id?: string | null;
+          paid_at?: string | null;
+          payment_response?: Json | null;
           shipping_address?: Json | null;
           metadata?: Json | null;
+          last_customer_message_at?: string | null;
+          last_admin_message_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -371,20 +399,34 @@ export interface Database {
             | "ready"
             | "delivered"
             | "canceled";
+          order_status?: string | null;
+          order_access_token?: string | null;
           fulfillment_method?: "pickup" | "delivery";
           fulfillment_date?: string;
           fulfillment_time_slot?: string | null;
+          pickup_date?: string | null;
+          delivery_date?: string | null;
+          estimated_ready_at?: string | null;
           notes?: string | null;
+          internal_notes?: string | null;
           subtotal?: number;
           discount_total?: number;
           delivery_fee?: number;
           tax_total?: number;
           total?: number;
           coupon_id?: string | null;
+          payment_provider?: string | null;
+          payment_status?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_checkout_session_id?: string | null;
+          paypal_order_id?: string | null;
+          paypal_capture_id?: string | null;
+          paid_at?: string | null;
+          payment_response?: Json | null;
           shipping_address?: Json | null;
           metadata?: Json | null;
+          last_customer_message_at?: string | null;
+          last_admin_message_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -425,6 +467,102 @@ export interface Database {
           quantity?: number;
           addons?: Json | null;
           image_url?: string | null;
+        };
+      };
+      order_messages: {
+        Row: {
+          id: string;
+          order_id: string;
+          sender_type: string;
+          sender_name: string;
+          sender_email: string | null;
+          message_body: string;
+          attachment_url: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          sender_type: string;
+          sender_name: string;
+          sender_email?: string | null;
+          message_body: string;
+          attachment_url?: string | null;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          sender_type?: string;
+          sender_name?: string;
+          sender_email?: string | null;
+          message_body?: string;
+          attachment_url?: string | null;
+          is_read?: boolean;
+        };
+      };
+      order_status_history: {
+        Row: {
+          id: string;
+          order_id: string;
+          old_status: string | null;
+          new_status: string;
+          note: string | null;
+          changed_by: string;
+          customer_visible: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          old_status?: string | null;
+          new_status: string;
+          note?: string | null;
+          changed_by: string;
+          customer_visible?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          old_status?: string | null;
+          new_status?: string;
+          note?: string | null;
+          changed_by?: string;
+          customer_visible?: boolean;
+        };
+      };
+      order_notifications: {
+        Row: {
+          id: string;
+          order_id: string;
+          notification_type: string;
+          channel: string;
+          recipient: string;
+          subject: string | null;
+          body: string;
+          status: string;
+          sent_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          notification_type: string;
+          channel: string;
+          recipient: string;
+          subject?: string | null;
+          body: string;
+          status?: string;
+          sent_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          notification_type?: string;
+          channel?: string;
+          recipient?: string;
+          subject?: string | null;
+          body?: string;
+          status?: string;
+          sent_at?: string | null;
         };
       };
       custom_orders: {
@@ -528,6 +666,70 @@ export interface Database {
           featured?: boolean;
           sort_order?: number;
           created_at?: string;
+          updated_at?: string;
+        };
+      };
+      about_page_content: {
+        Row: {
+          id: string;
+          hero_eyebrow: string | null;
+          hero_title: string | null;
+          hero_text: string | null;
+          hero_image_url: string | null;
+          hero_image_alt: string | null;
+          section_one_title: string | null;
+          section_one_text: string | null;
+          section_two_title: string | null;
+          section_two_text: string | null;
+          style_title: string | null;
+          style_text: string | null;
+          cta_title: string | null;
+          cta_text: string | null;
+          cta_button_text: string | null;
+          cta_button_link: string | null;
+          gallery_images: Json | null;
+          highlight_cards: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          hero_eyebrow?: string | null;
+          hero_title?: string | null;
+          hero_text?: string | null;
+          hero_image_url?: string | null;
+          hero_image_alt?: string | null;
+          section_one_title?: string | null;
+          section_one_text?: string | null;
+          section_two_title?: string | null;
+          section_two_text?: string | null;
+          style_title?: string | null;
+          style_text?: string | null;
+          cta_title?: string | null;
+          cta_text?: string | null;
+          cta_button_text?: string | null;
+          cta_button_link?: string | null;
+          gallery_images?: Json | null;
+          highlight_cards?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          hero_eyebrow?: string | null;
+          hero_title?: string | null;
+          hero_text?: string | null;
+          hero_image_url?: string | null;
+          hero_image_alt?: string | null;
+          section_one_title?: string | null;
+          section_one_text?: string | null;
+          section_two_title?: string | null;
+          section_two_text?: string | null;
+          style_title?: string | null;
+          style_text?: string | null;
+          cta_title?: string | null;
+          cta_text?: string | null;
+          cta_button_text?: string | null;
+          cta_button_link?: string | null;
+          gallery_images?: Json | null;
+          highlight_cards?: Json | null;
           updated_at?: string;
         };
       };

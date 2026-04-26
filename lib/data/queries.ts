@@ -2,6 +2,7 @@
 import { cache } from "react";
 import { isWithinInterval } from "date-fns";
 
+import { DEFAULT_ABOUT_PAGE_CONTENT, normalizeAboutPageContent } from "@/lib/about-page";
 import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
 import { normalizeHomepageContent } from "@/lib/homepage";
 import { normalizeSiteSettings } from "@/lib/payments";
@@ -11,6 +12,8 @@ import type {
   CategoryRow,
   CouponRow,
   CustomOrderRow,
+  AboutPageContentModel,
+  AboutPageContentRow,
   HomepageContentModel,
   HomepageContentRow,
   MediaAssetRow,
@@ -83,6 +86,15 @@ function buildFallbackHomepage(): HomepageContentModel {
   } as HomepageContentRow);
 }
 
+function buildFallbackAboutPage(): AboutPageContentModel {
+  return {
+    ...DEFAULT_ABOUT_PAGE_CONTENT,
+    gallery_images: [],
+    highlight_cards: DEFAULT_ABOUT_PAGE_CONTENT.highlight_cards.map((card) => ({ ...card })),
+    updated_at: new Date().toISOString()
+  };
+}
+
 function normalizeProduct(product: any): ProductWithRelations {
   return {
     ...product,
@@ -141,6 +153,51 @@ export const getHomepageContent = cache(async (): Promise<HomepageContentModel> 
     .maybeSingle();
 
   return data ? normalizeHomepageContent(data as HomepageContentRow) : buildFallbackHomepage();
+});
+
+export const getAboutPageContent = cache(async (): Promise<AboutPageContentModel> => {
+  if (!hasSupabaseEnv()) {
+    return buildFallbackAboutPage();
+  }
+
+  const supabase = (await createClient()) as any;
+  const [{ data }, { data: mediaAssets }] = await Promise.all([
+    supabase
+      .from("about_page_content")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("media_assets")
+      .select("public_url, alt_text")
+      .order("created_at", { ascending: false })
+      .limit(6)
+  ]);
+
+  const aboutContent = normalizeAboutPageContent((data ?? null) as AboutPageContentRow | null);
+
+  if (aboutContent.gallery_images.length > 0) {
+    return aboutContent;
+  }
+
+  const fallbackGallery =
+    (mediaAssets ?? [])
+      .filter(
+        (asset: { public_url?: string | null; alt_text?: string | null }) =>
+          typeof asset.public_url === "string" && asset.public_url.trim().length > 0
+      )
+      .slice(0, 6)
+      .map((asset: { public_url: string; alt_text?: string | null }, index: number) => ({
+        image_url: asset.public_url,
+        alt_text:
+          asset.alt_text?.trim() || `L&A Amor & Sugar treat gallery image ${index + 1}`
+      })) ?? [];
+
+  return {
+    ...aboutContent,
+    gallery_images: fallbackGallery
+  };
 });
 
 export const getSiteSettings = cache(async () => {
@@ -333,7 +390,7 @@ export const getOrders = cache(async () => {
   const supabase = (await createClient()) as any;
   const { data } = await supabase
     .from("orders")
-    .select("*, order_items(*)")
+    .select("*, order_items(*), order_messages(*), order_status_history(*)")
     .order("created_at", { ascending: false });
 
   return (data as unknown as OrderWithItems[]) ?? [];
@@ -347,8 +404,23 @@ export const getOrderById = cache(async (orderId: string) => {
   const supabase = (await createClient()) as any;
   const { data } = await supabase
     .from("orders")
-    .select("*, order_items(*)")
+    .select("*, order_items(*), order_messages(*), order_status_history(*)")
     .eq("id", orderId)
+    .maybeSingle();
+
+  return (data as unknown as OrderWithItems | null) ?? null;
+});
+
+export const getOrderByAccessToken = cache(async (token: string) => {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = (await createClient()) as any;
+  const { data } = await supabase
+    .from("orders")
+    .select("*, order_items(*), order_messages(*), order_status_history(*)")
+    .eq("order_access_token", token)
     .maybeSingle();
 
   return (data as unknown as OrderWithItems | null) ?? null;

@@ -2,6 +2,7 @@ import { CheckoutForm } from "@/components/site/checkout-form";
 import { SectionHeading } from "@/components/site/section-heading";
 import { buildMetadata } from "@/lib/config/site";
 import { getAvailablePaymentMethods } from "@/lib/payments";
+import { hasPayPalLiveEnv } from "@/lib/paypal";
 import { getSiteSettings } from "@/lib/data/queries";
 
 export const metadata = buildMetadata({
@@ -26,7 +27,8 @@ async function CheckoutPageContent({
   const settings = await settingsPromise;
   const paymentMethods = getAvailablePaymentMethods(
     settings,
-    Boolean(process.env.STRIPE_SECRET_KEY)
+    Boolean(process.env.STRIPE_SECRET_KEY),
+    hasPayPalLiveEnv()
   );
 
   return (

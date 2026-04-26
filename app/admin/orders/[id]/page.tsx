@@ -1,8 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 
+import { OrderCommunicationPanel } from "@/components/admin/order-communication-panel";
 import { StatusBadge } from "@/components/site/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrderById } from "@/lib/data/queries";
+import { getCustomerOrderStatusLabel, getPaymentStatusLabel } from "@/lib/order-status";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency } from "@/lib/utils";
 
 type AdminOrderDetailPageProps = {
@@ -19,6 +23,13 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
+  await (createAdminClient() as any)
+    .from("order_messages")
+    .update({ is_read: true })
+    .eq("order_id", order.id)
+    .eq("sender_type", "customer")
+    .eq("is_read", false);
+
   const paymentMeta =
     order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
       ? (order.metadata as {
@@ -32,8 +43,9 @@ export default async function AdminOrderDetailPage({
       : null;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <Card>
+    <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card>
         <CardHeader>
           <CardTitle>{order.order_number}</CardTitle>
         </CardHeader>
@@ -49,6 +61,9 @@ export default async function AdminOrderDetailPage({
             <div className="mt-2">
               <StatusBadge status={order.status} />
             </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Customer-facing: {getCustomerOrderStatusLabel(order.order_status ?? order.status)}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">Fulfillment</p>
@@ -66,6 +81,9 @@ export default async function AdminOrderDetailPage({
               {paymentMeta?.payment_label ??
                 (order.stripe_checkout_session_id ? "Stripe" : "Not specified")}
             </p>
+            <p className="text-sm text-muted-foreground">
+              Status: {getPaymentStatusLabel(order.payment_status)}
+            </p>
             {paymentMeta?.payment_account ? <p>{paymentMeta.payment_account}</p> : null}
             {paymentMeta?.payment_instructions ? (
               <p className="text-muted-foreground">{paymentMeta.payment_instructions}</p>
@@ -73,6 +91,8 @@ export default async function AdminOrderDetailPage({
             {paymentMeta?.manual_payment_note ? (
               <p className="text-muted-foreground">{paymentMeta.manual_payment_note}</p>
             ) : null}
+            {order.paypal_order_id ? <p>PayPal order ID: {order.paypal_order_id}</p> : null}
+            {order.paypal_capture_id ? <p>PayPal capture ID: {order.paypal_capture_id}</p> : null}
             {paymentMeta?.payment_url ? (
               <a
                 href={paymentMeta.payment_url}
@@ -85,8 +105,8 @@ export default async function AdminOrderDetailPage({
             ) : null}
           </div>
         </CardContent>
-      </Card>
-      <Card>
+        </Card>
+        <Card>
         <CardHeader>
           <CardTitle>Order items</CardTitle>
         </CardHeader>
@@ -114,7 +134,9 @@ export default async function AdminOrderDetailPage({
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
+      <OrderCommunicationPanel order={order} />
     </div>
   );
 }

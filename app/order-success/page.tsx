@@ -111,7 +111,9 @@ export default async function OrderSuccessPage({
           ) : null}
           <div className="flex flex-col gap-4 sm:flex-row">
             <Button asChild variant="gold">
-              <Link href="/shop">Continue shopping</Link>
+              <Link href={order?.order_access_token ? `/order-status/${order.order_access_token}` : "/shop"}>
+                {order?.order_access_token ? "View order status" : "Continue shopping"}
+              </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/custom-orders">Request custom desserts</Link>

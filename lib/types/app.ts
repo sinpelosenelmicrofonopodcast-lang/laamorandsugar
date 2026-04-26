@@ -10,8 +10,16 @@ export type ProductAddonRow =
 export type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
 export type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"];
+export type OrderMessageRow =
+  Database["public"]["Tables"]["order_messages"]["Row"];
+export type OrderStatusHistoryRow =
+  Database["public"]["Tables"]["order_status_history"]["Row"];
+export type OrderNotificationRow =
+  Database["public"]["Tables"]["order_notifications"]["Row"];
 export type TestimonialRow =
   Database["public"]["Tables"]["testimonials"]["Row"];
+export type AboutPageContentRow =
+  Database["public"]["Tables"]["about_page_content"]["Row"];
 export type HomepageContentRow =
   Database["public"]["Tables"]["homepage_content"]["Row"];
 export type SeasonalSpecialRow =
@@ -31,6 +39,8 @@ export type ProductWithRelations = ProductRow & {
 
 export type OrderWithItems = OrderRow & {
   order_items: OrderItemRow[];
+  order_messages?: OrderMessageRow[];
+  order_status_history?: OrderStatusHistoryRow[];
 };
 
 export type HomepageIconName =
@@ -140,7 +150,30 @@ export type HomepageContentModel = Omit<HomepageContentRow, "content_json"> & {
 
 export type HomepageContentJsonValue = Json;
 
-export type PaymentMethodCode = "stripe" | "paypal" | "cash_app" | "zelle";
+export type AboutPageGalleryImage = {
+  image_url: string;
+  alt_text: string;
+};
+
+export type AboutPageHighlightCard = {
+  title: string;
+  text: string;
+};
+
+export type AboutPageContentModel = Omit<
+  AboutPageContentRow,
+  "gallery_images" | "highlight_cards"
+> & {
+  gallery_images: AboutPageGalleryImage[];
+  highlight_cards: AboutPageHighlightCard[];
+};
+
+export type PaymentMethodCode =
+  | "stripe"
+  | "paypal_live"
+  | "paypal"
+  | "cash_app"
+  | "zelle";
 
 export type PaymentMethodSettings = {
   enabled: boolean;

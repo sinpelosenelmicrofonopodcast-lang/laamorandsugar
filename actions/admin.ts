@@ -6,6 +6,7 @@ import { requireAdminAccess } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getErrorMessage, slugify } from "@/lib/utils";
 import {
+  aboutPageSchema,
   categorySchema,
   couponSchema,
   homepageSchema,
@@ -16,7 +17,7 @@ import {
   updateCustomOrderStatusSchema,
   updateOrderStatusSchema
 } from "@/lib/validations";
-import type { HomepageContentRow, SiteSettingsRow } from "@/lib/types/app";
+import type { AboutPageContentRow, HomepageContentRow, SiteSettingsRow } from "@/lib/types/app";
 
 function normalizeString(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value.trim() : null;
@@ -417,9 +418,24 @@ export async function updateOrderStatusAction(input: unknown) {
     await requireAdminAccess();
     const values = updateOrderStatusSchema.parse(input);
     const supabase = createAdminClient() as any;
+    const orderStatus =
+      values.status === "confirmed"
+        ? "confirmed"
+        : values.status === "in_progress"
+          ? "in_progress"
+          : values.status === "ready"
+            ? "ready_for_pickup"
+            : values.status === "delivered"
+              ? "completed"
+              : values.status === "canceled"
+                ? "cancelled"
+                : "pending_review";
     const { error } = await supabase
       .from("orders")
-      .update({ status: values.status })
+      .update({
+        status: values.status,
+        order_status: orderStatus
+      })
       .eq("id", values.orderId);
 
     if (error) {
@@ -529,6 +545,65 @@ export async function upsertHomepageContentAction(input: unknown) {
 
     revalidatePath("/");
     revalidatePath("/admin/homepage");
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertAboutPageContentAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = aboutPageSchema.parse(input);
+    const supabase = createAdminClient() as any;
+
+    const { data: existing } = (await supabase
+      .from("about_page_content")
+      .select("id")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()) as { data: Pick<AboutPageContentRow, "id"> | null };
+
+    const payload = {
+      hero_eyebrow: normalizeString(values.hero_eyebrow),
+      hero_title: normalizeString(values.hero_title),
+      hero_text: normalizeString(values.hero_text),
+      hero_image_url: normalizeString(values.hero_image_url ?? null),
+      hero_image_alt: normalizeString(values.hero_image_alt ?? null),
+      section_one_title: normalizeString(values.section_one_title),
+      section_one_text: normalizeString(values.section_one_text),
+      section_two_title: normalizeString(values.section_two_title),
+      section_two_text: normalizeString(values.section_two_text),
+      style_title: normalizeString(values.style_title),
+      style_text: normalizeString(values.style_text),
+      cta_title: normalizeString(values.cta_title),
+      cta_text: normalizeString(values.cta_text),
+      cta_button_text: normalizeString(values.cta_button_text),
+      cta_button_link: normalizeString(values.cta_button_link),
+      gallery_images: values.gallery_images
+        .filter((image) => image.image_url.trim() && image.alt_text.trim())
+        .map((image) => ({
+          image_url: image.image_url.trim(),
+          alt_text: image.alt_text.trim()
+        })),
+      highlight_cards: values.highlight_cards.map((card) => ({
+        title: card.title.trim(),
+        text: card.text.trim()
+      }))
+    };
+
+    const query = existing?.id
+      ? supabase.from("about_page_content").update(payload).eq("id", existing.id)
+      : supabase.from("about_page_content").insert(payload);
+
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/about");
+    revalidatePath("/admin/about");
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };
