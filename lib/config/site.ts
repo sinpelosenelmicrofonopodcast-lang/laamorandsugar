@@ -30,7 +30,9 @@ export function buildMetadata({
   path?: string;
 } = {}): Metadata {
   const fullTitle = title
-    ? `${title} | ${siteConfig.shortName}`
+    ? title.includes(siteConfig.shortName) || title.includes(siteConfig.name)
+      ? title
+      : `${title} | ${siteConfig.shortName}`
     : siteConfig.name;
   const fullDescription = description ?? siteConfig.description;
   const url = absoluteUrl(path);

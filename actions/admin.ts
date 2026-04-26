@@ -462,6 +462,40 @@ export async function upsertHomepageContentAction(input: unknown) {
     const values = homepageSchema.parse(input);
     const supabase = createAdminClient() as any;
 
+    const legacyPayload = {
+      banner_text: normalizeString(values.banner_text ?? null),
+      banner_cta_label: normalizeString(values.banner_cta_label ?? null),
+      banner_cta_href: normalizeString(values.banner_cta_href ?? null),
+      hero_eyebrow: normalizeString(values.hero_eyebrow ?? null),
+      hero_title: normalizeString(values.hero_title ?? null),
+      hero_description: normalizeString(values.hero_description ?? null),
+      hero_primary_cta_label: normalizeString(values.hero_primary_cta_label ?? null),
+      hero_primary_cta_href: normalizeString(values.hero_primary_cta_href ?? null),
+      hero_secondary_cta_label: normalizeString(values.hero_secondary_cta_label ?? null),
+      hero_secondary_cta_href: normalizeString(values.hero_secondary_cta_href ?? null),
+      featured_heading: normalizeString(values.featured_heading ?? null),
+      featured_description: normalizeString(values.featured_description ?? null),
+      process_heading: normalizeString(values.process_heading ?? null),
+      process_description: normalizeString(values.process_description ?? null),
+      testimonials_heading: normalizeString(values.testimonials_heading ?? null),
+      testimonials_description: normalizeString(values.testimonials_description ?? null),
+      cta_heading: normalizeString(values.cta_heading ?? null),
+      cta_description: normalizeString(values.cta_description ?? null)
+    };
+
+    const payload = {
+      ...legacyPayload,
+      seo_title: normalizeString(values.seo_title ?? null),
+      seo_description: normalizeString(values.seo_description ?? null),
+      hero_image_url: normalizeString(values.hero_image_url ?? null),
+      hero_image_alt: normalizeString(values.hero_image_alt ?? null),
+      hero_mobile_image_url: normalizeString(values.hero_mobile_image_url ?? null),
+      hero_mobile_image_alt: normalizeString(values.hero_mobile_image_alt ?? null),
+      hero_background_image_url: normalizeString(values.hero_background_image_url ?? null),
+      hero_background_image_alt: normalizeString(values.hero_background_image_alt ?? null),
+      content_json: values.content_json
+    };
+
     const { data: existing } = (await supabase
       .from("homepage_content")
       .select("id")
@@ -469,11 +503,25 @@ export async function upsertHomepageContentAction(input: unknown) {
       .limit(1)
       .maybeSingle()) as { data: Pick<HomepageContentRow, "id"> | null };
 
-    const query = existing?.id
-      ? supabase.from("homepage_content").update(values).eq("id", existing.id)
-      : supabase.from("homepage_content").insert(values);
+    const runQuery = (queryPayload: Record<string, unknown>) =>
+      existing?.id
+        ? supabase.from("homepage_content").update(queryPayload).eq("id", existing.id)
+        : supabase.from("homepage_content").insert(queryPayload);
 
-    const { error } = await query;
+    let { error } = await runQuery(payload);
+
+    if (
+      error?.code === "PGRST204" &&
+      typeof error.message === "string" &&
+      (error.message.includes("'content_json'") ||
+        error.message.includes("'seo_title'") ||
+        error.message.includes("'seo_description'") ||
+        error.message.includes("'hero_image_url'") ||
+        error.message.includes("'hero_mobile_image_url'") ||
+        error.message.includes("'hero_background_image_url'"))
+    ) {
+      ({ error } = await runQuery(legacyPayload));
+    }
 
     if (error) {
       throw error;

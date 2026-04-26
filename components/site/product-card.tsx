@@ -31,7 +31,13 @@ function getOptionalTag(product: ProductWithRelations) {
     : null;
 }
 
-export function ProductCard({ product }: { product: ProductWithRelations }) {
+export function ProductCard({
+  product,
+  ctaLabel = "View details"
+}: {
+  product: ProductWithRelations;
+  ctaLabel?: string;
+}) {
   const optionalTag = getOptionalTag(product);
 
   return (
@@ -73,7 +79,7 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
         </div>
         <Button asChild variant="outline" className="w-full justify-between rounded-full">
           <Link href={`/products/${product.slug}`}>
-            View details
+            {ctaLabel}
             <ArrowUpRight className="h-4 w-4" />
           </Link>
         </Button>

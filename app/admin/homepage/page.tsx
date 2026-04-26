@@ -1,8 +1,28 @@
 import { HomepageForm } from "@/components/admin/homepage-form";
-import { getHomepageContent } from "@/lib/data/queries";
+import {
+  getAllProductsAdmin,
+  getHomepageContent,
+  getMediaAssets,
+  getSeasonalSpecials,
+  getTestimonials
+} from "@/lib/data/queries";
 
 export default async function AdminHomepagePage() {
-  const homepage = await getHomepageContent();
+  const [homepage, products, testimonials, specials, assets] = await Promise.all([
+    getHomepageContent(),
+    getAllProductsAdmin(),
+    getTestimonials(),
+    getSeasonalSpecials(),
+    getMediaAssets()
+  ]);
 
-  return <HomepageForm homepage={homepage} />;
+  return (
+    <HomepageForm
+      homepage={homepage}
+      products={products}
+      testimonials={testimonials}
+      specials={specials}
+      assets={assets}
+    />
+  );
 }

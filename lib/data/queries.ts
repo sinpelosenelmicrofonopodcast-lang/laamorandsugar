@@ -3,12 +3,14 @@ import { cache } from "react";
 import { isWithinInterval } from "date-fns";
 
 import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
+import { normalizeHomepageContent } from "@/lib/homepage";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type {
   CategoryRow,
   CouponRow,
   CustomOrderRow,
+  HomepageContentModel,
   HomepageContentRow,
   MediaAssetRow,
   OrderWithItems,
@@ -71,12 +73,12 @@ const fallbackTestimonials: TestimonialRow[] = [
   }
 ];
 
-function buildFallbackHomepage(): HomepageContentRow {
-  return {
+function buildFallbackHomepage(): HomepageContentModel {
+  return normalizeHomepageContent({
     id: "fallback-homepage",
     ...DEFAULT_HOMEPAGE_CONTENT,
     updated_at: new Date().toISOString()
-  };
+  } as HomepageContentRow);
 }
 
 function normalizeProduct(product: any): ProductWithRelations {
@@ -123,7 +125,7 @@ function normalizeProduct(product: any): ProductWithRelations {
   } as ProductWithRelations;
 }
 
-export const getHomepageContent = cache(async () => {
+export const getHomepageContent = cache(async (): Promise<HomepageContentModel> => {
   if (!hasSupabaseEnv()) {
     return buildFallbackHomepage();
   }
@@ -136,7 +138,7 @@ export const getHomepageContent = cache(async () => {
     .limit(1)
     .maybeSingle();
 
-  return data ?? buildFallbackHomepage();
+  return data ? normalizeHomepageContent(data as HomepageContentRow) : buildFallbackHomepage();
 });
 
 export const getSiteSettings = cache(async () => {

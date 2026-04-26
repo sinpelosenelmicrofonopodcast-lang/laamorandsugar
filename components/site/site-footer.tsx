@@ -1,10 +1,28 @@
 import Link from "next/link";
-import { Instagram, Mail, Phone, Sparkles } from "lucide-react";
+import { Facebook, Instagram, Mail, Music2, Phone } from "lucide-react";
 
 import type { SiteSettingsRow } from "@/lib/types/app";
 import { BrandMark } from "@/components/site/brand-mark";
 
 export function SiteFooter({ settings }: { settings: SiteSettingsRow }) {
+  const socialLinks = [
+    {
+      href: settings.instagram_url,
+      label: "Follow on Instagram",
+      icon: Instagram
+    },
+    {
+      href: settings.facebook_url,
+      label: "Follow on Facebook",
+      icon: Facebook
+    },
+    {
+      href: settings.tiktok_url,
+      label: "Follow on TikTok",
+      icon: Music2
+    }
+  ].filter((link): link is { href: string; label: string; icon: typeof Instagram } => Boolean(link.href));
+
   return (
     <footer className="border-t border-white/60 bg-white/75 backdrop-blur">
       <div className="container grid gap-10 py-14 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
@@ -35,21 +53,24 @@ export function SiteFooter({ settings }: { settings: SiteSettingsRow }) {
           </div>
         </div>
         <div>
-          <h3 className="font-serif text-xl text-foreground">Brand Notes</h3>
+          <h3 className="font-serif text-xl text-foreground">Follow Along</h3>
           <div className="mt-4 space-y-4 text-sm text-muted-foreground">
-            <p className="inline-flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 text-bakery-gold" />
-              Pickup and delivery options are managed from the admin dashboard and reflected in checkout.
-            </p>
-            <a
-              href={settings.instagram_url ?? "#"}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2"
-            >
-              <Instagram className="h-4 w-4" />
-              Follow on Instagram
-            </a>
+            {socialLinks.map((link) => {
+              const Icon = link.icon;
+
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 transition hover:text-bakery-rose"
+                >
+                  <Icon className="h-4 w-4" />
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>

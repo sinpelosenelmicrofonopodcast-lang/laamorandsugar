@@ -8,6 +8,7 @@ import {
   PRODUCT_STATUS,
   USER_ROLES
 } from "@/lib/constants";
+import { HOMEPAGE_ICON_OPTIONS } from "@/lib/homepage";
 
 const businessHoursSchema = z.preprocess((value) => {
   if (value === null || value === undefined || value === "") {
@@ -217,10 +218,35 @@ export const seasonalSpecialSchema = z.object({
   is_active: z.boolean().default(true)
 });
 
+const homepageIconSchema = z.enum(HOMEPAGE_ICON_OPTIONS as [string, ...string[]]);
+
+const homepageImageAssetSchema = z.object({
+  image_url: z.string().max(400).optional().nullable().transform((value) => value ?? ""),
+  alt_text: z.string().max(180).optional().nullable().transform((value) => value ?? ""),
+  title: z.string().max(120).optional().nullable(),
+  caption: z.string().max(200).optional().nullable(),
+  description: z.string().max(400).optional().nullable(),
+  asset_id: z.string().uuid().optional().nullable()
+});
+
+const homepageStepSchema = z.object({
+  title: z.string().min(1).max(80),
+  text: z.string().min(1).max(240),
+  icon: homepageIconSchema
+});
+
+const homepagePromiseCardSchema = z.object({
+  title: z.string().min(1).max(80),
+  text: z.string().min(1).max(240),
+  icon: homepageIconSchema
+});
+
 export const homepageSchema = z.object({
   banner_text: z.string().max(120).optional().nullable(),
   banner_cta_label: z.string().max(60).optional().nullable(),
   banner_cta_href: z.string().max(180).optional().nullable(),
+  seo_title: z.string().max(160).optional().nullable(),
+  seo_description: z.string().max(320).optional().nullable(),
   hero_eyebrow: z.string().max(80).optional().nullable(),
   hero_title: z.string().max(140).optional().nullable(),
   hero_description: z.string().max(500).optional().nullable(),
@@ -228,6 +254,12 @@ export const homepageSchema = z.object({
   hero_primary_cta_href: z.string().max(180).optional().nullable(),
   hero_secondary_cta_label: z.string().max(60).optional().nullable(),
   hero_secondary_cta_href: z.string().max(180).optional().nullable(),
+  hero_image_url: z.string().max(400).optional().nullable(),
+  hero_image_alt: z.string().max(180).optional().nullable(),
+  hero_mobile_image_url: z.string().max(400).optional().nullable(),
+  hero_mobile_image_alt: z.string().max(180).optional().nullable(),
+  hero_background_image_url: z.string().max(400).optional().nullable(),
+  hero_background_image_alt: z.string().max(180).optional().nullable(),
   featured_heading: z.string().max(140).optional().nullable(),
   featured_description: z.string().max(500).optional().nullable(),
   process_heading: z.string().max(140).optional().nullable(),
@@ -235,7 +267,91 @@ export const homepageSchema = z.object({
   testimonials_heading: z.string().max(140).optional().nullable(),
   testimonials_description: z.string().max(500).optional().nullable(),
   cta_heading: z.string().max(140).optional().nullable(),
-  cta_description: z.string().max(500).optional().nullable()
+  cta_description: z.string().max(500).optional().nullable(),
+  content_json: z.object({
+    sections_order: z
+      .array(
+        z.enum([
+          "featured",
+          "custom_orders",
+          "how_it_works",
+          "seasonal",
+          "trust",
+          "testimonials",
+          "gallery",
+          "final_cta"
+        ])
+      )
+      .min(1),
+    featured: z.object({
+      is_enabled: z.boolean().default(true),
+      product_ids: z.array(z.string().uuid()).default([])
+    }),
+    custom_orders: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      description: z.string().min(1).max(500),
+      image_url: z.string().max(400).optional().nullable(),
+      image_alt: z.string().max(180),
+      bullets: z.array(z.string().min(1).max(80)).min(1).max(12),
+      button_text: z.string().min(1).max(60),
+      button_link: z.string().min(1).max(180)
+    }),
+    how_it_works: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      steps: z.array(homepageStepSchema).min(3).max(4)
+    }),
+    seasonal: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      subtitle: z.string().min(1).max(500),
+      image_url: z.string().max(400).optional().nullable(),
+      image_alt: z.string().max(180),
+      button_text: z.string().min(1).max(60),
+      button_link: z.string().min(1).max(180),
+      product_ids: z.array(z.string().uuid()).default([]),
+      special_ids: z.array(z.string().uuid()).default([])
+    }),
+    trust: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      description: z.string().max(500),
+      cards: z.array(homepagePromiseCardSchema).min(3).max(4)
+    }),
+    testimonials: z.object({
+      is_enabled: z.boolean().default(true),
+      selected_ids: z.array(z.string().uuid()).default([])
+    }),
+    gallery: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      images: z.array(homepageImageAssetSchema).max(12)
+    }),
+    final_cta: z.object({
+      is_enabled: z.boolean().default(true),
+      title: z.string().min(1).max(140),
+      text: z.string().min(1).max(500),
+      button_text: z.string().min(1).max(60),
+      button_link: z.string().min(1).max(180),
+      background_image_url: z.string().max(400).optional().nullable(),
+      background_image_alt: z.string().max(180)
+    })
+  })
+}).superRefine((value, ctx) => {
+  if (
+    value.content_json.gallery.is_enabled &&
+    value.content_json.gallery.images.length > 0 &&
+    value.content_json.gallery.images.some(
+      (image) => !image.image_url?.trim() || !image.alt_text?.trim()
+    )
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Every gallery image needs both an image URL and alt text.",
+      path: ["content_json", "gallery", "images"]
+    });
+  }
 });
 
 export const siteSettingsSchema = z.object({

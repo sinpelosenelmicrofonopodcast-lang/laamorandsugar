@@ -537,6 +537,8 @@ export interface Database {
           banner_text: string | null;
           banner_cta_label: string | null;
           banner_cta_href: string | null;
+          seo_title: string | null;
+          seo_description: string | null;
           hero_eyebrow: string | null;
           hero_title: string | null;
           hero_description: string | null;
@@ -544,6 +546,12 @@ export interface Database {
           hero_primary_cta_href: string | null;
           hero_secondary_cta_label: string | null;
           hero_secondary_cta_href: string | null;
+          hero_image_url: string | null;
+          hero_image_alt: string | null;
+          hero_mobile_image_url: string | null;
+          hero_mobile_image_alt: string | null;
+          hero_background_image_url: string | null;
+          hero_background_image_alt: string | null;
           featured_heading: string | null;
           featured_description: string | null;
           process_heading: string | null;
@@ -552,6 +560,7 @@ export interface Database {
           testimonials_description: string | null;
           cta_heading: string | null;
           cta_description: string | null;
+          content_json: Json | null;
           updated_at: string;
         };
         Insert: {
@@ -559,6 +568,8 @@ export interface Database {
           banner_text?: string | null;
           banner_cta_label?: string | null;
           banner_cta_href?: string | null;
+          seo_title?: string | null;
+          seo_description?: string | null;
           hero_eyebrow?: string | null;
           hero_title?: string | null;
           hero_description?: string | null;
@@ -566,6 +577,12 @@ export interface Database {
           hero_primary_cta_href?: string | null;
           hero_secondary_cta_label?: string | null;
           hero_secondary_cta_href?: string | null;
+          hero_image_url?: string | null;
+          hero_image_alt?: string | null;
+          hero_mobile_image_url?: string | null;
+          hero_mobile_image_alt?: string | null;
+          hero_background_image_url?: string | null;
+          hero_background_image_alt?: string | null;
           featured_heading?: string | null;
           featured_description?: string | null;
           process_heading?: string | null;
@@ -574,12 +591,15 @@ export interface Database {
           testimonials_description?: string | null;
           cta_heading?: string | null;
           cta_description?: string | null;
+          content_json?: Json | null;
           updated_at?: string;
         };
         Update: {
           banner_text?: string | null;
           banner_cta_label?: string | null;
           banner_cta_href?: string | null;
+          seo_title?: string | null;
+          seo_description?: string | null;
           hero_eyebrow?: string | null;
           hero_title?: string | null;
           hero_description?: string | null;
@@ -587,6 +607,12 @@ export interface Database {
           hero_primary_cta_href?: string | null;
           hero_secondary_cta_label?: string | null;
           hero_secondary_cta_href?: string | null;
+          hero_image_url?: string | null;
+          hero_image_alt?: string | null;
+          hero_mobile_image_url?: string | null;
+          hero_mobile_image_alt?: string | null;
+          hero_background_image_url?: string | null;
+          hero_background_image_alt?: string | null;
           featured_heading?: string | null;
           featured_description?: string | null;
           process_heading?: string | null;
@@ -595,6 +621,7 @@ export interface Database {
           testimonials_description?: string | null;
           cta_heading?: string | null;
           cta_description?: string | null;
+          content_json?: Json | null;
           updated_at?: string;
         };
       };

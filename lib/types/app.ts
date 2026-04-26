@@ -1,4 +1,4 @@
-import type { Database } from "@/lib/types/database";
+import type { Database, Json } from "@/lib/types/database";
 
 export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
@@ -32,3 +32,110 @@ export type ProductWithRelations = ProductRow & {
 export type OrderWithItems = OrderRow & {
   order_items: OrderItemRow[];
 };
+
+export type HomepageIconName =
+  | "calendar"
+  | "gift"
+  | "heart"
+  | "package"
+  | "palette"
+  | "shield"
+  | "shopping_bag"
+  | "sparkles"
+  | "star"
+  | "truck";
+
+export type HomepageSectionKey =
+  | "featured"
+  | "custom_orders"
+  | "how_it_works"
+  | "seasonal"
+  | "trust"
+  | "testimonials"
+  | "gallery"
+  | "final_cta";
+
+export type HomepageImageAsset = {
+  image_url: string;
+  alt_text: string;
+  title?: string | null;
+  caption?: string | null;
+  description?: string | null;
+  asset_id?: string | null;
+};
+
+export type HomepageHowItWorksStep = {
+  title: string;
+  text: string;
+  icon: HomepageIconName;
+};
+
+export type HomepagePromiseCard = {
+  title: string;
+  text: string;
+  icon: HomepageIconName;
+};
+
+export type HomepageContentJson = {
+  sections_order: HomepageSectionKey[];
+  featured: {
+    is_enabled: boolean;
+    product_ids: string[];
+  };
+  custom_orders: {
+    is_enabled: boolean;
+    title: string;
+    description: string;
+    image_url: string | null;
+    image_alt: string;
+    bullets: string[];
+    button_text: string;
+    button_link: string;
+  };
+  how_it_works: {
+    is_enabled: boolean;
+    title: string;
+    steps: HomepageHowItWorksStep[];
+  };
+  seasonal: {
+    is_enabled: boolean;
+    title: string;
+    subtitle: string;
+    image_url: string | null;
+    image_alt: string;
+    button_text: string;
+    button_link: string;
+    product_ids: string[];
+    special_ids: string[];
+  };
+  trust: {
+    is_enabled: boolean;
+    title: string;
+    description: string;
+    cards: HomepagePromiseCard[];
+  };
+  testimonials: {
+    is_enabled: boolean;
+    selected_ids: string[];
+  };
+  gallery: {
+    is_enabled: boolean;
+    title: string;
+    images: HomepageImageAsset[];
+  };
+  final_cta: {
+    is_enabled: boolean;
+    title: string;
+    text: string;
+    button_text: string;
+    button_link: string;
+    background_image_url: string | null;
+    background_image_alt: string;
+  };
+};
+
+export type HomepageContentModel = Omit<HomepageContentRow, "content_json"> & {
+  content_json: HomepageContentJson;
+};
+
+export type HomepageContentJsonValue = Json;
