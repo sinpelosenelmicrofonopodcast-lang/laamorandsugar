@@ -49,7 +49,7 @@ export function ForgotPasswordForm() {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-sm leading-6 text-muted-foreground">
-          Enter the email tied to your bakery admin account and we will send you a secure reset link.
+          Enter the email tied to your account and we will send you a secure reset link.
         </p>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">

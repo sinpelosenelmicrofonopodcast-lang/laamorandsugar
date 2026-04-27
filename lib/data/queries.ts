@@ -6,6 +6,7 @@ import { DEFAULT_ABOUT_PAGE_CONTENT, normalizeAboutPageContent } from "@/lib/abo
 import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
 import { normalizeHomepageContent } from "@/lib/homepage";
 import { normalizeSiteSettings } from "@/lib/payments";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type {
@@ -17,7 +18,9 @@ import type {
   HomepageContentModel,
   HomepageContentRow,
   MediaAssetRow,
+  ProfileRow,
   OrderWithItems,
+  CustomerAccountOrder,
   ProductWithRelations,
   SeasonalSpecialRow,
   SiteSettingsRow,
@@ -425,6 +428,32 @@ export const getOrderByAccessToken = cache(async (token: string) => {
 
   return (data as unknown as OrderWithItems | null) ?? null;
 });
+
+export async function getOrdersForUser(userId: string) {
+  if (!hasSupabaseEnv()) {
+    return [] as CustomerAccountOrder[];
+  }
+
+  const supabase = createAdminClient() as any;
+  const { data } = await supabase
+    .from("orders")
+    .select("*, order_items(*), order_messages(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  return (data as CustomerAccountOrder[]) ?? [];
+}
+
+export async function getProfileById(userId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createAdminClient() as any;
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+
+  return (data as ProfileRow | null) ?? null;
+}
 
 export const getCustomOrders = cache(async () => {
   if (!hasSupabaseEnv()) {

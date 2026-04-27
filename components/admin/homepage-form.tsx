@@ -573,7 +573,7 @@ export function HomepageForm({
               label="Hero background image"
               urlPath="hero_background_image_url"
               altPath="hero_background_image_alt"
-              previewFallback="/products/hero-bakery.svg"
+              previewFallback="/brand/la-logo-official.png"
             />
           </div>
         </div>

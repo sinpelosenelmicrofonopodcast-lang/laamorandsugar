@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
 
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { getStripe } from "@/lib/stripe";
@@ -66,6 +67,21 @@ export async function createCheckoutSessionAction(input: unknown) {
       };
     }
     const prepared = preparedResult.data;
+    const { user } = await requireAuthenticatedUser("/account/login?next=/checkout");
+
+    if (!user.email) {
+      return {
+        error: "Your account is missing an email address. Please sign in again."
+      };
+    }
+
+    prepared.values.customer_email = user.email;
+
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      full_name: prepared.values.customer_name,
+      phone: prepared.values.customer_phone
+    });
 
     if (prepared.selectedPaymentMethod.kind === "paypal_live") {
       return {
@@ -74,6 +90,7 @@ export async function createCheckoutSessionAction(input: unknown) {
     }
 
     const { orderId, orderNumber } = await createOrderRecord(supabase, prepared, {
+      user_id: user.id,
       order_status:
         prepared.selectedPaymentMethod.kind === "manual" ? "payment_pending" : "pending_review",
       payment_status: "pending",
@@ -183,7 +200,7 @@ export async function generateProductDescriptionAction(input: unknown) {
           {
             role: "system",
             content:
-              "You write polished bakery product copy for a premium feminine brand. Return strict JSON with keys title, shortDescription, longDescription."
+              "You write polished dessert product copy for a premium feminine brand. Return strict JSON with keys title, shortDescription, longDescription."
           },
           {
             role: "user",

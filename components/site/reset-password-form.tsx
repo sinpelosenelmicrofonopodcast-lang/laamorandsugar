@@ -104,7 +104,7 @@ export function ResetPasswordForm() {
       }
 
       toast.success("Password updated");
-      router.push("/login");
+      router.push("/account/login");
       router.refresh();
     });
   });

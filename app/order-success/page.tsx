@@ -46,7 +46,7 @@ export default async function OrderSuccessPage({
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-muted-foreground">
-            Thank you for your order. We have saved your fulfillment details and will keep the order updated from the bakery dashboard.
+            Thank you for your order. We have saved your fulfillment details and will keep your order status updated here.
           </p>
           {order ? (
             <div className="rounded-[1.75rem] bg-secondary/70 p-5">

@@ -7,7 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { createCheckoutSessionAction } from "@/actions/store";
-import type { PaymentMethodCode, PaymentMethodSettings, SiteSettingsModel } from "@/lib/types/app";
+import type {
+  PaymentMethodCode,
+  PaymentMethodSettings,
+  ProfileRow,
+  SiteSettingsModel
+} from "@/lib/types/app";
 import { useCartStore } from "@/lib/store/cart-store";
 import { checkoutSchema, type CheckoutValues } from "@/lib/validations";
 import { formatCurrency } from "@/lib/utils";
@@ -27,10 +32,14 @@ type AvailablePaymentMethod = {
 
 export function CheckoutForm({
   settings,
-  paymentMethods
+  paymentMethods,
+  customerProfile,
+  customerEmail
 }: {
   settings: SiteSettingsModel;
   paymentMethods: AvailablePaymentMethod[];
+  customerProfile: ProfileRow | null;
+  customerEmail: string;
 }) {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
@@ -43,9 +52,9 @@ export function CheckoutForm({
   const form = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      customer_name: "",
-      customer_email: "",
-      customer_phone: "",
+      customer_name: customerProfile?.full_name ?? "",
+      customer_email: customerEmail,
+      customer_phone: customerProfile?.phone ?? "",
       fulfillment_method: "pickup",
       payment_method: paymentMethods[0]?.code ?? "stripe",
       fulfillment_date: "",
@@ -126,6 +135,10 @@ export function CheckoutForm({
           <CardTitle>Pickup or delivery details</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-6 rounded-[1.5rem] border border-bakery-gold/20 bg-bakery-gold/10 p-4 text-sm text-bakery-espresso">
+            You are ordering with <span className="font-semibold">{customerEmail}</span>. Your order
+            status, messages, and payment updates will stay linked to this account.
+          </div>
           <form className="grid gap-5 md:grid-cols-2" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label htmlFor="customer_name">Name</Label>
@@ -137,7 +150,13 @@ export function CheckoutForm({
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="customer_email">Email</Label>
-              <Input id="customer_email" type="email" {...form.register("customer_email")} />
+              <Input
+                id="customer_email"
+                type="email"
+                readOnly
+                className="bg-secondary/40"
+                {...form.register("customer_email")}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="fulfillment_method">Fulfillment</Label>

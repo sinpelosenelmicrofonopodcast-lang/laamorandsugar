@@ -338,6 +338,7 @@ export async function createOrderRecord(
     id: orderId,
     order_number: orderNumber,
     order_access_token: orderAccessToken,
+    user_id: overrides.user_id ?? null,
     customer_name: prepared.values.customer_name,
     customer_email: prepared.values.customer_email,
     customer_phone: prepared.values.customer_phone,

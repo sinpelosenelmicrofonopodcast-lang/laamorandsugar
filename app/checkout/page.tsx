@@ -1,5 +1,6 @@
 import { CheckoutForm } from "@/components/site/checkout-form";
 import { SectionHeading } from "@/components/site/section-heading";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { buildMetadata } from "@/lib/config/site";
 import { getAvailablePaymentMethods } from "@/lib/payments";
 import { hasPayPalLiveEnv } from "@/lib/paypal";
@@ -24,7 +25,10 @@ async function CheckoutPageContent({
 }: {
   settingsPromise: ReturnType<typeof getSiteSettings>;
 }) {
-  const settings = await settingsPromise;
+  const [{ user, profile }, settings] = await Promise.all([
+    requireAuthenticatedUser("/account/login?next=/checkout"),
+    settingsPromise
+  ]);
   const paymentMethods = getAvailablePaymentMethods(
     settings,
     Boolean(process.env.STRIPE_SECRET_KEY),
@@ -36,10 +40,15 @@ async function CheckoutPageContent({
       <SectionHeading
         eyebrow="Checkout"
         title="Finalize pickup, delivery, and payment"
-        description="Choose your fulfillment details, add notes, and pay using the methods currently available for the shop."
+        description="Your account keeps every order, update, and message in one place. Confirm your details below and finish your order."
       />
       <div className="mt-10">
-        <CheckoutForm settings={settings} paymentMethods={paymentMethods} />
+        <CheckoutForm
+          settings={settings}
+          paymentMethods={paymentMethods}
+          customerProfile={profile}
+          customerEmail={user.email ?? ""}
+        />
       </div>
     </div>
   );

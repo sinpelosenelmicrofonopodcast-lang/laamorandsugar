@@ -4,6 +4,7 @@ import { ProductDetailClient } from "@/components/site/product-detail-client";
 import { SectionHeading } from "@/components/site/section-heading";
 import { getProductBySlug } from "@/lib/data/queries";
 import { buildMetadata } from "@/lib/config/site";
+import { resolveImageUrl } from "@/lib/utils";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -25,7 +26,15 @@ export async function generateMetadata({ params }: ProductDetailPageProps) {
   return buildMetadata({
     title: product.name,
     description: product.short_description ?? product.description ?? undefined,
-    path: `/products/${slug}`
+    path: `/products/${slug}`,
+    image:
+      resolveImageUrl(
+        product.product_images.find((image) => image.is_primary) ?? product.product_images[0]
+      ) ?? undefined,
+    imageAlt:
+      product.product_images.find((image) => image.is_primary)?.alt_text ??
+      product.product_images[0]?.alt_text ??
+      product.name
   });
 }
 

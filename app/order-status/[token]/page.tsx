@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { CustomerOrderStatusView } from "@/components/site/customer-order-status-view";
+import { getCurrentUser, getCurrentUserRole } from "@/lib/auth";
 import { buildMetadata } from "@/lib/config/site";
-import { getOrderByAccessToken } from "@/lib/data/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = buildMetadata({
@@ -21,13 +21,33 @@ export default async function OrderStatusTokenPage({
   params
 }: OrderStatusTokenPageProps) {
   const { token } = await params;
-  const order = await getOrderByAccessToken(token);
+  const supabase = createAdminClient() as any;
+  const [user, role, order] = await Promise.all([
+    getCurrentUser(),
+    getCurrentUserRole(),
+    supabase
+      .from("orders")
+      .select("*, order_items(*), order_messages(*), order_status_history(*)")
+      .eq("order_access_token", token)
+      .maybeSingle()
+      .then((result: { data: any }) => result.data)
+  ]);
 
   if (!order) {
     notFound();
   }
 
-  await (createAdminClient() as any)
+  if (order.user_id && role !== "admin" && role !== "staff") {
+    if (!user) {
+      redirect(`/account/login?next=/order-status/${token}`);
+    }
+
+    if (user.id !== order.user_id) {
+      notFound();
+    }
+  }
+
+  await supabase
     .from("order_messages")
     .update({ is_read: true })
     .eq("order_id", order.id)

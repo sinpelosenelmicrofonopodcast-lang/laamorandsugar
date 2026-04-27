@@ -19,7 +19,7 @@ export default async function ContactPage() {
       <SectionHeading
         eyebrow="Contact"
         title="Let’s plan your next sweet moment"
-        description="Use the custom order form for event requests, or contact the bakery directly for fulfillment questions and general support."
+        description="Use the custom order form for event requests, or contact us directly for order questions and general support."
       />
       <div className="mt-10 grid gap-6 md:grid-cols-3">
         {[
@@ -36,7 +36,7 @@ export default async function ContactPage() {
           {
             icon: MapPin,
             title: "Location",
-            value: settings.address ?? "Set your bakery address in admin settings"
+            value: settings.address ?? "Set your business address in admin settings"
           }
         ].map((item) => (
           <Card key={item.title}>

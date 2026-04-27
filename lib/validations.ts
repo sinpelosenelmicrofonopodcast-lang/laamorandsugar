@@ -63,6 +63,27 @@ export const loginSchema = z.object({
   password: z.string().min(8)
 });
 
+const passwordSchema = z
+  .string()
+  .min(8, "Use at least 8 characters.")
+  .regex(/[a-z]/, "Include at least 1 lowercase letter.")
+  .regex(/[A-Z]/, "Include at least 1 uppercase letter.")
+  .regex(/[0-9]/, "Include at least 1 number.")
+  .regex(/[^A-Za-z0-9]/, "Include at least 1 symbol.");
+
+export const customerSignUpSchema = z
+  .object({
+    full_name: z.string().min(2).max(100),
+    phone: z.string().min(7).max(20),
+    email: z.string().email(),
+    password: passwordSchema,
+    confirmPassword: z.string().min(8)
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"]
+  });
+
 const paymentMethodSettingsSchema = z.object({
   enabled: z.boolean().default(false),
   label: z.string().max(80),
@@ -77,13 +98,18 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z
   .object({
-    password: z.string().min(8),
+    password: passwordSchema,
     confirmPassword: z.string().min(8)
   })
   .refine((value) => value.password === value.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"]
   });
+
+export const customerProfileSchema = z.object({
+  full_name: z.string().min(2).max(100),
+  phone: z.string().min(7).max(20)
+});
 
 export const categorySchema = z.object({
   id: z.string().uuid().optional(),
@@ -429,6 +455,7 @@ export const siteSettingsSchema = z.object({
   currency: z.string().length(3).default("USD"),
   payment_settings: z.object({
     stripe: paymentMethodSettingsSchema,
+    paypal_live: paymentMethodSettingsSchema,
     paypal: paymentMethodSettingsSchema,
     cash_app: paymentMethodSettingsSchema,
     zelle: paymentMethodSettingsSchema,
@@ -548,3 +575,5 @@ export type HomepageValues = z.infer<typeof homepageSchema>;
 export type SiteSettingsValues = z.infer<typeof siteSettingsSchema>;
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+export type CustomerSignUpValues = z.infer<typeof customerSignUpSchema>;
+export type CustomerProfileValues = z.infer<typeof customerProfileSchema>;

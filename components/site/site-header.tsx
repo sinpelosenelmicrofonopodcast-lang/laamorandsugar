@@ -1,7 +1,9 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 
 import type { HomepageContentRow, SiteSettingsRow } from "@/lib/types/app";
+import { signOutAction } from "@/actions/auth";
 import { BrandMark } from "@/components/site/brand-mark";
 import { CartButton } from "@/components/site/cart-button";
 import { Button } from "@/components/ui/button";
@@ -17,11 +19,17 @@ const publicNav = [
 
 export function SiteHeader({
   homepage,
-  settings
+  settings,
+  currentUser,
+  currentUserRole
 }: {
   homepage: HomepageContentRow;
   settings: SiteSettingsRow;
+  currentUser: User | null;
+  currentUserRole: string | null;
 }) {
+  const showAdminLink = currentUserRole === "admin" || currentUserRole === "staff";
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/50 bg-[rgba(255,250,246,0.86)] backdrop-blur-xl">
       {homepage.banner_text ? (
@@ -49,12 +57,41 @@ export function SiteHeader({
               {item.label}
             </Link>
           ))}
+          <Link
+            href="/order-status"
+            className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+          >
+            My Orders
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
           <CartButton />
-          <Button asChild variant="outline" className="hidden md:inline-flex">
-            <Link href="/admin">{settings.business_name === "Admin" ? "Admin" : "Admin Login"}</Link>
-          </Button>
+          {currentUser ? (
+            <>
+              <Button asChild variant="outline" className="inline-flex">
+                <Link href="/order-status">My Orders</Link>
+              </Button>
+              {showAdminLink ? (
+                <Button asChild variant="outline" className="hidden md:inline-flex">
+                  <Link href="/admin">Admin</Link>
+                </Button>
+              ) : null}
+              <form action={signOutAction} className="hidden md:block">
+                <Button type="submit" variant="ghost">
+                  Sign out
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="outline" className="inline-flex">
+                <Link href="/account/login">Sign in</Link>
+              </Button>
+              <Button asChild variant="ghost" className="hidden lg:inline-flex">
+                <Link href="/login">{settings.business_name === "Admin" ? "Admin" : "Admin Login"}</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

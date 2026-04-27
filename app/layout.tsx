@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { OneSignalScript } from "@/components/site/onesignal-script";
 import { Providers } from "@/components/site/providers";
 import { WhatsAppFloatButton } from "@/components/site/whatsapp-float-button";
+import { getCurrentUser, getCurrentUserRole } from "@/lib/auth";
 import { buildMetadata } from "@/lib/config/site";
 import { getHomepageContent, getSiteSettings } from "@/lib/data/queries";
 
@@ -34,6 +35,7 @@ export default async function RootLayout({
     getHomepageContent(),
     getSiteSettings()
   ]);
+  const [currentUser, currentUserRole] = await Promise.all([getCurrentUser(), getCurrentUserRole()]);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -42,7 +44,12 @@ export default async function RootLayout({
         <Providers>
           <div className="relative flex min-h-screen flex-col">
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-hero-glow" />
-            <SiteHeader homepage={homepage} settings={settings} />
+            <SiteHeader
+              homepage={homepage}
+              settings={settings}
+              currentUser={currentUser}
+              currentUserRole={currentUserRole}
+            />
             <main className="flex-1">{children}</main>
             <SiteFooter settings={settings} />
             <WhatsAppFloatButton />

@@ -5,10 +5,12 @@ import { absoluteUrl } from "@/lib/utils";
 export const siteConfig = {
   name: "L&A Amor & Sugar Co.",
   shortName: "L&A Amor & Sugar",
+  defaultMetaTitle: "L&A Amor & Sugar | Custom Desserts in Killeen, TX",
+  defaultTwitterTitle: "L&A Amor & Sugar | Custom Desserts",
   description:
-    "Luxury bakery storefront and admin system for premium treats, custom orders, and celebration-ready dessert boxes.",
+    "Chocolate strawberries, cake pops, dessert boxes, and custom treats made with love. Order online today.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ogImage: absoluteUrl("/brand/la-logo-official.png"),
+  ogImage: absoluteUrl("/og-image.jpg"),
   links: {
     instagram: "https://instagram.com",
     facebook: "https://facebook.com",
@@ -23,19 +25,29 @@ export const siteConfig = {
 export function buildMetadata({
   title,
   description,
-  path = ""
+  path = "",
+  image,
+  imageAlt,
+  twitterTitle
 }: {
   title?: string;
   description?: string;
   path?: string;
+  image?: string;
+  imageAlt?: string;
+  twitterTitle?: string;
 } = {}): Metadata {
   const fullTitle = title
     ? title.includes(siteConfig.shortName) || title.includes(siteConfig.name)
       ? title
       : `${title} | ${siteConfig.shortName}`
-    : siteConfig.name;
+    : siteConfig.defaultMetaTitle;
   const fullDescription = description ?? siteConfig.description;
   const url = absoluteUrl(path);
+  const fullImage = image ?? siteConfig.ogImage;
+  const ogImageAlt = imageAlt ?? siteConfig.shortName;
+  const fullTwitterTitle =
+    twitterTitle ?? (title ? fullTitle : siteConfig.defaultTwitterTitle);
 
   return {
     title: fullTitle,
@@ -48,8 +60,8 @@ export function buildMetadata({
       siteName: siteConfig.name,
       images: [
         {
-          url: siteConfig.ogImage,
-          alt: siteConfig.name
+          url: fullImage,
+          alt: ogImageAlt
         }
       ],
       locale: "en_US",
@@ -57,9 +69,9 @@ export function buildMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: fullTitle,
+      title: fullTwitterTitle,
       description: fullDescription,
-      images: [siteConfig.ogImage]
+      images: [fullImage]
     },
     alternates: {
       canonical: url

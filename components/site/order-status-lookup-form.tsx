@@ -36,9 +36,9 @@ export function OrderStatusLookupForm() {
     <Card className="border-white/70 bg-white/80 shadow-card">
       <CardHeader>
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
-          Order lookup
+          Legacy order lookup
         </p>
-        <CardTitle>Check your sweet order</CardTitle>
+        <CardTitle>Check an order placed before customer accounts</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="grid gap-5 md:grid-cols-2" onSubmit={onSubmit}>

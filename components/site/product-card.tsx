@@ -63,7 +63,7 @@ export function ProductCard({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-bakery-gold">
-                {product.categories?.name ?? "Bakery Collection"}
+                {product.categories?.name ?? "Signature Collection"}
               </p>
               <h3 className="mt-2 font-serif text-2xl leading-tight text-foreground transition group-hover:text-bakery-rose">
                 {product.name}

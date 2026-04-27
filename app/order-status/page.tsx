@@ -1,5 +1,11 @@
+import Link from "next/link";
+
+import { CustomerOrdersHub } from "@/components/site/customer-orders-hub";
 import { OrderStatusLookupForm } from "@/components/site/order-status-lookup-form";
+import { Button } from "@/components/ui/button";
+import { getCurrentProfile, getCurrentUser } from "@/lib/auth";
 import { buildMetadata } from "@/lib/config/site";
+import { getOrdersForUser } from "@/lib/data/queries";
 
 export const metadata = buildMetadata({
   title: "Order Status",
@@ -8,7 +14,19 @@ export const metadata = buildMetadata({
   path: "/order-status"
 });
 
-export default function OrderStatusPage() {
+export default async function OrderStatusPage() {
+  const user = await getCurrentUser();
+
+  if (user?.email) {
+    const [profile, orders] = await Promise.all([getCurrentProfile(), getOrdersForUser(user.id)]);
+
+    return (
+      <div className="container py-16">
+        <CustomerOrdersHub profile={profile} email={user.email} orders={orders} />
+      </div>
+    );
+  }
+
   return (
     <div className="container py-16">
       <div className="mx-auto max-w-3xl space-y-8">
@@ -20,8 +38,16 @@ export default function OrderStatusPage() {
             Keep up with your sweet order
           </h1>
           <p className="text-lg leading-8 text-muted-foreground">
-            Enter your order number and the email or phone number used at checkout to view your order status and messages.
+            Sign in to view your customer order hub. If you are checking an older order placed before accounts were required, you can still use the lookup below.
           </p>
+        </div>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild variant="gold" size="lg">
+            <Link href="/account/login?next=/order-status">Sign in to view my orders</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/account/sign-up?next=/checkout">Create account</Link>
+          </Button>
         </div>
         <OrderStatusLookupForm />
       </div>

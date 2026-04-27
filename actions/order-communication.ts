@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { requireAdminAccess } from "@/lib/auth";
+import { getCurrentUser, getCurrentUserRole, requireAdminAccess } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createOrderMessage,
@@ -32,11 +32,35 @@ async function getOrderByTokenWithAdminClient(token: string) {
   return { supabase, order: data };
 }
 
+async function canCurrentUserAccessOrder(order: {
+  user_id?: string | null;
+}) {
+  const [user, role] = await Promise.all([getCurrentUser(), getCurrentUserRole()]);
+
+  if (!order.user_id) {
+    return true;
+  }
+
+  if (!user) {
+    return false;
+  }
+
+  if (role === "admin" || role === "staff") {
+    return true;
+  }
+
+  return user.id === order.user_id;
+}
+
 export async function lookupOrderStatusAction(input: unknown) {
   try {
     const values = orderLookupSchema.parse(input);
     const supabase = createAdminClient() as any;
-    let query = supabase.from("orders").select("order_access_token").eq("order_number", values.order_number).limit(1);
+    let query = supabase
+      .from("orders")
+      .select("order_access_token,user_id,customer_email,customer_phone")
+      .eq("order_number", values.order_number)
+      .limit(1);
 
     if (values.email?.trim()) {
       query = query.eq("customer_email", values.email.trim());
@@ -50,6 +74,16 @@ export async function lookupOrderStatusAction(input: unknown) {
       return {
         error: "We couldn’t find an order with that information. Please double-check and try again."
       };
+    }
+
+    if (data.user_id) {
+      const allowed = await canCurrentUserAccessOrder({ user_id: data.user_id });
+
+      if (!allowed) {
+        return {
+          error: "Please sign in to the customer account that placed this order to view updates and messages."
+        };
+      }
     }
 
     redirect(`/order-status/${data.order_access_token}`);
@@ -68,6 +102,14 @@ export async function sendCustomerOrderMessageAction(input: unknown) {
     if (!order) {
       return {
         error: "We couldn’t find that order."
+      };
+    }
+
+    const allowed = await canCurrentUserAccessOrder(order);
+
+    if (!allowed) {
+      return {
+        error: "Please sign in to the customer account that placed this order."
       };
     }
 
@@ -101,6 +143,14 @@ export async function saveOrderPushSubscriptionAction(input: unknown) {
     if (!order) {
       return {
         error: "We couldn’t find that order."
+      };
+    }
+
+    const allowed = await canCurrentUserAccessOrder(order);
+
+    if (!allowed) {
+      return {
+        error: "Please sign in to the customer account that placed this order."
       };
     }
 
@@ -273,6 +323,14 @@ export async function getCustomerOrderStatusSummaryAction(token: string) {
     const { order } = await getOrderByTokenWithAdminClient(token);
     if (!order) {
       return { error: "Order not found." };
+    }
+
+    const allowed = await canCurrentUserAccessOrder(order);
+
+    if (!allowed) {
+      return {
+        error: "Please sign in to the customer account that placed this order."
+      };
     }
 
     return {

@@ -3,7 +3,7 @@ import { buildMetadata } from "@/lib/config/site";
 
 export const metadata = buildMetadata({
   title: "Reset Password",
-  description: "Set a new password for your bakery admin account.",
+  description: "Set a new password for your customer account.",
   path: "/reset-password"
 });
 

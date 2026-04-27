@@ -26,7 +26,7 @@ export function AdminLayoutShell({
                 Admin panel
               </p>
               <h1 className="font-serif text-4xl text-foreground">
-                Bakery operations, content, and fulfillment
+                Orders, content, and brand management
               </h1>
             </div>
             <form action={signOutAction}>

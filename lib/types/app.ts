@@ -2,6 +2,7 @@ import type { Database, Json } from "@/lib/types/database";
 
 export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
+export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProductImageRow = Database["public"]["Tables"]["product_images"]["Row"];
 export type ProductVariantRow =
   Database["public"]["Tables"]["product_variants"]["Row"];
@@ -41,6 +42,26 @@ export type OrderWithItems = OrderRow & {
   order_items: OrderItemRow[];
   order_messages?: OrderMessageRow[];
   order_status_history?: OrderStatusHistoryRow[];
+};
+
+export type CustomerAccountOrder = Pick<
+  OrderWithItems,
+  | "id"
+  | "order_number"
+  | "order_access_token"
+  | "customer_name"
+  | "fulfillment_method"
+  | "fulfillment_date"
+  | "fulfillment_time_slot"
+  | "total"
+  | "status"
+  | "order_status"
+  | "payment_status"
+  | "created_at"
+  | "estimated_ready_at"
+> & {
+  order_items: OrderItemRow[];
+  order_messages?: OrderMessageRow[];
 };
 
 export type HomepageIconName =
@@ -185,6 +206,7 @@ export type PaymentMethodSettings = {
 
 export type PaymentSettings = {
   stripe: PaymentMethodSettings;
+  paypal_live: PaymentMethodSettings;
   paypal: PaymentMethodSettings;
   cash_app: PaymentMethodSettings;
   zelle: PaymentMethodSettings;

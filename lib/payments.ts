@@ -20,6 +20,10 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
     enabled: true,
     instructions: "Pay securely online with card."
   },
+  paypal_live: {
+    ...baseMethod("PayPal"),
+    instructions: "Pay securely with your PayPal account."
+  },
   paypal: {
     ...baseMethod("PayPal"),
     instructions: "Send payment through PayPal using the details below."
@@ -66,6 +70,7 @@ export function normalizePaymentSettings(value: unknown): PaymentSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
       stripe: { ...DEFAULT_PAYMENT_SETTINGS.stripe },
+      paypal_live: { ...DEFAULT_PAYMENT_SETTINGS.paypal_live },
       paypal: { ...DEFAULT_PAYMENT_SETTINGS.paypal },
       cash_app: { ...DEFAULT_PAYMENT_SETTINGS.cash_app },
       zelle: { ...DEFAULT_PAYMENT_SETTINGS.zelle },
@@ -77,6 +82,7 @@ export function normalizePaymentSettings(value: unknown): PaymentSettings {
 
   return {
     stripe: normalizeMethod(source.stripe, DEFAULT_PAYMENT_SETTINGS.stripe),
+    paypal_live: normalizeMethod(source.paypal_live, DEFAULT_PAYMENT_SETTINGS.paypal_live),
     paypal: normalizeMethod(source.paypal, DEFAULT_PAYMENT_SETTINGS.paypal),
     cash_app: normalizeMethod(source.cash_app, DEFAULT_PAYMENT_SETTINGS.cash_app),
     zelle: normalizeMethod(source.zelle, DEFAULT_PAYMENT_SETTINGS.zelle),
@@ -113,16 +119,10 @@ export function getAvailablePaymentMethods(
     });
   }
 
-  if (hasPayPalLive) {
+  if (hasPayPalLive && settings.payment_settings.paypal_live.enabled) {
     methods.push({
       code: "paypal_live",
-      settings: {
-        enabled: true,
-        label: "PayPal",
-        account: null,
-        payment_url: null,
-        instructions: "Pay securely with your PayPal account."
-      },
+      settings: settings.payment_settings.paypal_live,
       kind: "paypal_live"
     });
   }

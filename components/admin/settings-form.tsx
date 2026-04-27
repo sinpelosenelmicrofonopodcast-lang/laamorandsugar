@@ -71,6 +71,15 @@ const settingsFormSchema = z.object({
         .optional(),
       instructions: z.string().max(300, "Keep instructions under 300 characters").optional()
     }),
+    paypal_live: z.object({
+      enabled: z.boolean(),
+      label: z.string().max(80, "Keep the label under 80 characters"),
+      account: z.string().max(160, "Keep it under 160 characters").optional(),
+      payment_url: z
+        .union([z.string().url("Enter a valid payment URL"), z.literal("")])
+        .optional(),
+      instructions: z.string().max(300, "Keep instructions under 300 characters").optional()
+    }),
     paypal: z.object({
       enabled: z.boolean(),
       label: z.string().max(80, "Keep the label under 80 characters"),
@@ -157,6 +166,20 @@ function getDefaultValues(settings: SiteSettingsModel): SettingsFormValues {
         instructions:
           settings.payment_settings?.stripe.instructions ??
           DEFAULT_PAYMENT_SETTINGS.stripe.instructions ??
+          ""
+      },
+      paypal_live: {
+        enabled:
+          settings.payment_settings?.paypal_live.enabled ??
+          DEFAULT_PAYMENT_SETTINGS.paypal_live.enabled,
+        label:
+          settings.payment_settings?.paypal_live.label ??
+          DEFAULT_PAYMENT_SETTINGS.paypal_live.label,
+        account: settings.payment_settings?.paypal_live.account ?? "",
+        payment_url: settings.payment_settings?.paypal_live.payment_url ?? "",
+        instructions:
+          settings.payment_settings?.paypal_live.instructions ??
+          DEFAULT_PAYMENT_SETTINGS.paypal_live.instructions ??
           ""
       },
       paypal: {
@@ -255,6 +278,13 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
             account: cleanOptionalText(values.payment_settings.stripe.account),
             payment_url: cleanOptionalText(values.payment_settings.stripe.payment_url),
             instructions: cleanOptionalText(values.payment_settings.stripe.instructions)
+          },
+          paypal_live: {
+            enabled: values.payment_settings.paypal_live.enabled,
+            label: values.payment_settings.paypal_live.label.trim(),
+            account: cleanOptionalText(values.payment_settings.paypal_live.account),
+            payment_url: cleanOptionalText(values.payment_settings.paypal_live.payment_url),
+            instructions: cleanOptionalText(values.payment_settings.paypal_live.instructions)
           },
           paypal: {
             enabled: values.payment_settings.paypal.enabled,
@@ -437,6 +467,7 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
             <div className="grid gap-5">
               {([
                 ["stripe", "Stripe"],
+                ["paypal_live", "PayPal Live"],
                 ["paypal", "PayPal"],
                 ["cash_app", "Cash App"],
                 ["zelle", "Zelle"]
@@ -454,7 +485,9 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
                     <div>
                       <p className="font-medium text-foreground">{title}</p>
                       <p className="text-sm text-muted-foreground">
-                        Control whether this payment option appears at checkout.
+                        {key === "paypal_live"
+                          ? "Control whether live PayPal appears at checkout when the PayPal environment variables are configured."
+                          : "Control whether this payment option appears at checkout."}
                       </p>
                     </div>
                   </div>
@@ -465,7 +498,9 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor={`payment_settings.${key}.account`}>
-                        {key === "stripe" ? "Account note" : "Account / handle"}
+                        {key === "stripe" || key === "paypal_live"
+                          ? "Account note"
+                          : "Account / handle"}
                       </Label>
                       <Input id={`payment_settings.${key}.account`} {...form.register(`payment_settings.${key}.account`)} />
                     </div>

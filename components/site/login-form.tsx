@@ -44,7 +44,7 @@ export function LoginForm() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
           Admin Access
         </p>
-        <CardTitle>Sign in to manage the bakery</CardTitle>
+        <CardTitle>Sign in to manage the brand</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {searchParams.get("error") === "forbidden" ? (

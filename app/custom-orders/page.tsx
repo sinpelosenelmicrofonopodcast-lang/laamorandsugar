@@ -5,7 +5,8 @@ import { buildMetadata } from "@/lib/config/site";
 
 export const metadata = buildMetadata({
   title: "Custom Orders",
-  description: "Request luxury custom dessert orders for birthdays, showers, gifting, and seasonal events.",
+  description:
+    "Request custom dessert boxes, strawberries, cake pops, and celebration treats styled for your event in Killeen, TX.",
   path: "/custom-orders"
 });
 

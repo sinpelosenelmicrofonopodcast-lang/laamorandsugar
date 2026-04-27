@@ -209,7 +209,7 @@ export function ProductForm({
     startTransition(async () => {
       const result = await generateProductDescriptionAction({
         name,
-        category: category?.name ?? "Bakery treat",
+        category: category?.name ?? "Sweet treat",
         flavor_notes: form.getValues("short_description"),
         seasonal: form.getValues("seasonal")
       });

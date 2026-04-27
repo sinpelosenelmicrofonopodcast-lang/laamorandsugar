@@ -1,6 +1,6 @@
 # L&A Amor & Sugar Co.
 
-Production-ready bakery storefront + admin CMS built with Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Supabase, Stripe, React Hook Form, and Zod.
+Production-ready dessert storefront + admin CMS built with Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Supabase, Stripe, React Hook Form, and Zod.
 
 ## Stack
 
@@ -15,7 +15,7 @@ Production-ready bakery storefront + admin CMS built with Next.js 15, TypeScript
 
 ## Included Features
 
-- Premium storefront UI for a luxury bakery brand
+- Premium storefront UI for a luxury dessert brand
 - Home, shop, product detail, custom orders, about, reviews, FAQ, contact, cart, checkout, and order success pages
 - Functional persistent cart with variants and add-ons
 - Stripe checkout flow
@@ -35,7 +35,7 @@ actions/               Server Actions for auth, checkout, and CMS updates
 lib/                   Data layer, validation, config, auth, Stripe, Supabase
 public/                Brand and product placeholder assets
 supabase/migrations/   SQL migration files
-supabase/seed.sql      Initial bakery seed data
+supabase/seed.sql      Initial dessert brand seed data
 ```
 
 ## 1. Install

@@ -9,6 +9,7 @@ import {
   notifyCustomerAboutOrderUpdate
 } from "@/lib/order-service";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { capturePayPalOrder, getPayPalAccessToken, hasPayPalLiveEnv } from "@/lib/paypal";
 
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient() as any;
+    const authClient = await createClient();
+    const {
+      data: { user }
+    } = await authClient.auth.getUser();
     const { data: order } = await supabase
       .from("orders")
       .select("*, order_items(*)")
@@ -40,6 +45,13 @@ export async function POST(request: Request) {
 
     if (!order) {
       return NextResponse.json({ error: "Order not found for this PayPal payment." }, { status: 404 });
+    }
+
+    if (order.user_id && (!user || user.id !== order.user_id)) {
+      return NextResponse.json(
+        { error: "Please sign in to the account that created this order." },
+        { status: 401 }
+      );
     }
 
     if (order.payment_status === "paid" && order.paypal_capture_id) {

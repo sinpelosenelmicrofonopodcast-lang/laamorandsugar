@@ -16,7 +16,8 @@ import type { CategoryRow } from "@/lib/types/app";
 
 export const metadata = buildMetadata({
   title: "Shop",
-  description: "Browse signature dessert boxes, berries, cupcakes, and seasonal bakery treats.",
+  description:
+    "Browse chocolate strawberries, cake pops, dessert boxes, and gift-ready treats made with love in Killeen, TX.",
   path: "/shop"
 });
 

@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createOrderRecord, prepareCheckoutOrder } from "@/lib/order-service";
 import { createPayPalOrder, getPayPalAccessToken, hasPayPalLiveEnv } from "@/lib/paypal";
@@ -19,6 +20,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const authClient = await createClient();
+    const {
+      data: { user }
+    } = await authClient.auth.getUser();
+
+    if (!user?.email) {
+      return NextResponse.json(
+        { error: "Please sign in before paying with PayPal." },
+        { status: 401 }
+      );
+    }
+
     const supabase = createAdminClient() as any;
     const preparedResult = await prepareCheckoutOrder(body, supabase);
 
@@ -30,6 +43,13 @@ export async function POST(request: Request) {
     }
 
     const prepared = preparedResult.data;
+    prepared.values.customer_email = user.email;
+
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      full_name: prepared.values.customer_name,
+      phone: prepared.values.customer_phone
+    });
 
     if (prepared.selectedPaymentMethod.code !== "paypal_live") {
       return NextResponse.json(
@@ -39,6 +59,7 @@ export async function POST(request: Request) {
     }
 
     const orderRecord = await createOrderRecord(supabase, prepared, {
+      user_id: user.id,
       order_status: "payment_pending",
       payment_status: "pending",
       payment_provider: "paypal"
