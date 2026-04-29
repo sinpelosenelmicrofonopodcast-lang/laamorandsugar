@@ -129,21 +129,17 @@ export async function createCheckoutSessionAction(input: unknown) {
         order_number: orderNumber
       },
       line_items: [
-        ...prepared.stripeLineItems,
-        ...(prepared.deliveryFee > 0
-          ? [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: prepared.settings.currency.toLowerCase(),
-                  unit_amount: Math.round(prepared.deliveryFee * 100),
-                  product_data: {
-                    name: "Local delivery"
-                  }
-                }
-              }
-            ]
-          : [])
+        {
+          quantity: 1,
+          price_data: {
+            currency: prepared.settings.currency.toLowerCase(),
+            unit_amount: Math.round(prepared.amountDueNow * 100),
+            product_data: {
+              name: "50% order deposit",
+              description: `Reserve this order today. Remaining balance: ${prepared.settings.currency} ${prepared.remainingBalance.toFixed(2)}`
+            }
+          }
+        }
       ]
     });
 

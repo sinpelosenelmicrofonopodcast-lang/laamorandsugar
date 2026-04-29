@@ -19,6 +19,7 @@ import {
   getCustomerOrderStatusMessage,
   getPaymentStatusLabel
 } from "@/lib/order-status";
+import { getOrderDepositSummary, getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import type { OrderWithItems } from "@/lib/types/app";
 import { formatCurrency } from "@/lib/utils";
 
@@ -38,6 +39,8 @@ export function CustomerOrderStatusView({
     status: order.status,
     payment_status: order.payment_status
   });
+  const paymentSummary = getOrderDepositSummary(order);
+  const paymentStatusCopy = getOrderPaymentStatusCopy(order);
   const latestVisibleMessage = useMemo(() => {
     const messages = (order.order_messages ?? [])
       .filter((message) => message.sender_type !== "customer")
@@ -115,6 +118,9 @@ export function CustomerOrderStatusView({
               <p className="mt-2 font-medium text-foreground">
                 {getPaymentStatusLabel(order.payment_status)}
               </p>
+              {paymentStatusCopy ? (
+                <p className="mt-1 text-xs text-muted-foreground">{paymentStatusCopy}</p>
+              ) : null}
             </div>
             <div className="rounded-[1.5rem] bg-secondary/60 p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
@@ -173,6 +179,14 @@ export function CustomerOrderStatusView({
                 <span className="font-serif text-3xl text-bakery-rose">
                   {formatCurrency(order.total)}
                 </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                <span>50% deposit</span>
+                <span>{formatCurrency(paymentSummary.amountDueNow)}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                <span>Remaining balance</span>
+                <span>{formatCurrency(paymentSummary.remainingBalance)}</span>
               </div>
             </div>
           </CardContent>

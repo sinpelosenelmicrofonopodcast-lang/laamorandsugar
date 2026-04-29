@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 
 import { checkoutSchema, type CheckoutValues } from "@/lib/validations";
 import { getSiteSettings } from "@/lib/data/queries";
+import { calculateDepositBreakdown } from "@/lib/order-payments";
 import { getAvailablePaymentMethods } from "@/lib/payments";
 import type { OrderRow, PaymentMethodCode, ProductRow } from "@/lib/types/app";
 import {
@@ -72,6 +73,8 @@ export type PreparedCheckoutOrder = {
   deliveryFee: number;
   taxTotal: number;
   total: number;
+  amountDueNow: number;
+  remainingBalance: number;
   orderItems: PreparedOrderItem[];
   stripeLineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
   shippingAddress:
@@ -268,6 +271,7 @@ export async function prepareCheckoutOrder(
 
   const taxTotal = 0;
   const total = subtotal - discountTotal + deliveryFee + taxTotal;
+  const deposit = calculateDepositBreakdown(total);
 
   return {
     data: {
@@ -279,6 +283,8 @@ export async function prepareCheckoutOrder(
       deliveryFee,
       taxTotal,
       total,
+      amountDueNow: deposit.amountDueNow,
+      remainingBalance: deposit.remainingBalance,
       orderItems,
       stripeLineItems,
       shippingAddress:
@@ -300,6 +306,10 @@ export function buildOrderMetadata(
   extra: Record<string, unknown> = {}
 ) {
   return {
+    payment_plan: "deposit_50",
+    deposit_percent: 50,
+    payment_due_now: prepared.amountDueNow,
+    remaining_balance: prepared.remainingBalance,
     coupon_code: prepared.values.coupon_code ?? null,
     payment_method: prepared.selectedPaymentMethod.code,
     payment_label: prepared.selectedPaymentMethod.settings.label,

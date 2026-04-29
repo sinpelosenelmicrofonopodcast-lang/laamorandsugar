@@ -5,6 +5,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/site/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getOrderDepositSummary, getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import { deriveCustomerOrderStatus, getPaymentStatusLabel } from "@/lib/order-status";
 import type { CustomerAccountOrder, ProfileRow } from "@/lib/types/app";
 import { formatCurrency } from "@/lib/utils";
@@ -83,6 +84,8 @@ export function CustomerOrdersHub({
                 status: order.status,
                 payment_status: order.payment_status
               });
+              const paymentSummary = getOrderDepositSummary(order);
+              const paymentStatusCopy = getOrderPaymentStatusCopy(order);
               const unreadAdminMessages = (order.order_messages ?? []).filter(
                 (message) =>
                   (message.sender_type === "admin" || message.sender_type === "system") &&
@@ -112,8 +115,16 @@ export function CustomerOrdersHub({
                         <span className="text-muted-foreground">
                           Payment: <strong className="text-foreground">{getPaymentStatusLabel(order.payment_status)}</strong>
                         </span>
+                        {paymentStatusCopy ? (
+                          <span className="text-muted-foreground">
+                            <strong className="text-foreground">{paymentStatusCopy}</strong>
+                          </span>
+                        ) : null}
                         <span className="text-muted-foreground">
                           Total: <strong className="text-foreground">{formatCurrency(order.total)}</strong>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Remaining: <strong className="text-foreground">{formatCurrency(paymentSummary.remainingBalance)}</strong>
                         </span>
                         <span className="text-muted-foreground">
                           Items: <strong className="text-foreground">{order.order_items.length}</strong>

@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     const accessToken = await getPayPalAccessToken();
     const paypalOrder = (await createPayPalOrder({
-      total: prepared.total,
+      total: prepared.amountDueNow,
       orderNumber: orderRecord.orderNumber,
       localOrderId: orderRecord.orderId,
       accessToken

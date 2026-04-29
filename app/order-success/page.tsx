@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrderById } from "@/lib/data/queries";
+import { getOrderDepositSummary, getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import { formatCurrency } from "@/lib/utils";
 import { buildMetadata } from "@/lib/config/site";
 
@@ -34,6 +35,8 @@ export default async function OrderSuccessPage({
           manual_payment_note?: string | null;
         })
       : null;
+  const paymentSummary = order ? getOrderDepositSummary(order) : null;
+  const paymentStatusCopy = order ? getOrderPaymentStatusCopy(order) : null;
 
   return (
     <div className="container py-16">
@@ -50,7 +53,7 @@ export default async function OrderSuccessPage({
           </p>
           {order ? (
             <div className="rounded-[1.75rem] bg-secondary/70 p-5">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                     Order
@@ -64,6 +67,9 @@ export default async function OrderSuccessPage({
                   <p className="mt-2 font-medium capitalize text-foreground">
                     {order.status.replace(/_/g, " ")}
                   </p>
+                  {paymentStatusCopy ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{paymentStatusCopy}</p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
@@ -73,7 +79,28 @@ export default async function OrderSuccessPage({
                     {formatCurrency(order.total)}
                   </p>
                 </div>
+                {paymentSummary ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Deposit Today
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">
+                      {formatCurrency(paymentSummary.amountDueNow)}
+                    </p>
+                  </div>
+                ) : null}
               </div>
+              {paymentSummary ? (
+                <div className="mt-4 rounded-[1.25rem] border border-bakery-gold/20 bg-white/75 px-4 py-4 text-sm">
+                  <p>
+                    <span className="font-medium text-foreground">Remaining balance:</span>{" "}
+                    {formatCurrency(paymentSummary.remainingBalance)}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    The remaining 50% is due before pickup or delivery unless you collect it another way in admin.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
           {paymentMeta?.payment_kind === "manual" ? (
@@ -82,10 +109,16 @@ export default async function OrderSuccessPage({
                 Payment Instructions
               </p>
               <h2 className="mt-3 font-serif text-3xl text-foreground">
-                Complete payment with {paymentMeta.payment_label ?? "your selected method"}
+                Complete your 50% deposit with {paymentMeta.payment_label ?? "your selected method"}
               </h2>
               {paymentMeta.payment_instructions ? (
                 <p className="mt-3 text-muted-foreground">{paymentMeta.payment_instructions}</p>
+              ) : null}
+              {paymentSummary ? (
+                <p className="mt-3 text-muted-foreground">
+                  Deposit due now: {formatCurrency(paymentSummary.amountDueNow)}. Remaining balance:{" "}
+                  {formatCurrency(paymentSummary.remainingBalance)}.
+                </p>
               ) : null}
               {paymentMeta.payment_account ? (
                 <p className="mt-3">

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
             orderId,
             oldStatus: order.order_status ?? "pending_review",
             newStatus: "paid",
-            note: "We received your payment and your order is confirmed.",
+            note: "We received your 50% deposit and your order is confirmed.",
             changedBy: "system",
             customerVisible: true
           });
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
             orderId,
             senderType: "system",
             senderName: "L&A Amor & Sugar",
-            messageBody: "We received your payment and your order is confirmed.",
+            messageBody: "We received your 50% deposit and your order is confirmed.",
             isRead: false
           });
           await notifyCustomerAboutOrderUpdate(
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
             },
             {
               notificationType: "payment_received",
-              message: "We received your payment and your order is confirmed.",
+              message: "We received your 50% deposit and your order is confirmed.",
               status: "paid"
             }
           );

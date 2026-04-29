@@ -5,6 +5,7 @@ import { OrderCommunicationPanel } from "@/components/admin/order-communication-
 import { StatusBadge } from "@/components/site/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrderById } from "@/lib/data/queries";
+import { getOrderDepositSummary, getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import { getCustomerOrderStatusLabel, getPaymentStatusLabel } from "@/lib/order-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency } from "@/lib/utils";
@@ -41,6 +42,8 @@ export default async function AdminOrderDetailPage({
           manual_payment_note?: string | null;
         })
       : null;
+  const paymentSummary = getOrderDepositSummary(order);
+  const paymentStatusCopy = getOrderPaymentStatusCopy(order);
 
   return (
     <div className="space-y-6">
@@ -83,6 +86,13 @@ export default async function AdminOrderDetailPage({
             </p>
             <p className="text-sm text-muted-foreground">
               Status: {getPaymentStatusLabel(order.payment_status)}
+            </p>
+            {paymentStatusCopy ? <p className="text-sm text-muted-foreground">{paymentStatusCopy}</p> : null}
+            <p className="text-sm text-muted-foreground">
+              Deposit due now: {formatCurrency(paymentSummary.amountDueNow)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Remaining balance: {formatCurrency(paymentSummary.remainingBalance)}
             </p>
             {paymentMeta?.payment_account ? <p>{paymentMeta.payment_account}</p> : null}
             {paymentMeta?.payment_instructions ? (
@@ -131,6 +141,14 @@ export default async function AdminOrderDetailPage({
               <span className="font-serif text-3xl text-bakery-rose">
                 {formatCurrency(order.total)}
               </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+              <span>50% deposit</span>
+              <span>{formatCurrency(paymentSummary.amountDueNow)}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Remaining balance</span>
+              <span>{formatCurrency(paymentSummary.remainingBalance)}</span>
             </div>
           </div>
         </CardContent>

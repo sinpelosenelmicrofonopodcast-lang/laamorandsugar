@@ -124,7 +124,7 @@ export function PayPalCheckoutButton({
       />
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Complete your payment securely with PayPal.
+          Complete your 50% deposit securely with PayPal.
         </p>
         <div
           ref={containerRef}

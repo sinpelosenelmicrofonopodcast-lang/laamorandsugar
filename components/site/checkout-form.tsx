@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { createCheckoutSessionAction } from "@/actions/store";
+import { calculateDepositBreakdown } from "@/lib/order-payments";
 import type {
   PaymentMethodCode,
   PaymentMethodSettings,
@@ -49,6 +50,7 @@ export function CheckoutForm({
       items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [items]
   );
+  const depositBreakdown = useMemo(() => calculateDepositBreakdown(subtotal), [subtotal]);
   const form = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -232,6 +234,14 @@ export function CheckoutForm({
               </div>
               {selectedPaymentMethod?.kind === "manual" ? (
                 <div className="rounded-[1.5rem] border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">
+                    A 50% deposit is required to place this order.
+                  </p>
+                  <p className="mt-1">
+                    Estimated deposit due now: {formatCurrency(depositBreakdown.amountDueNow)}. Remaining balance:
+                    {" "}
+                    {formatCurrency(depositBreakdown.remainingBalance)}.
+                  </p>
                   {selectedPaymentMethod.settings.account ? (
                     <p>
                       <span className="font-medium text-foreground">Send payment to:</span>{" "}
@@ -312,8 +322,8 @@ export function CheckoutForm({
               ) : (
                 <Button type="submit" variant="gold" size="lg" disabled={isPending}>
                   {selectedPaymentMethod?.kind === "stripe"
-                    ? "Continue to secure payment"
-                    : "Place order and view payment instructions"}
+                    ? `Pay ${formatCurrency(depositBreakdown.amountDueNow)} deposit`
+                    : "Place order and view deposit instructions"}
                 </Button>
               )}
             </div>
@@ -352,13 +362,28 @@ export function CheckoutForm({
               </span>
             </div>
           </div>
+          <div className="rounded-[1.5rem] border border-bakery-gold/20 bg-bakery-gold/10 px-5 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Estimated deposit due today (50%)</span>
+              <span className="font-serif text-3xl text-bakery-gold">
+                {formatCurrency(depositBreakdown.amountDueNow)}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Remaining balance</span>
+              <span>{formatCurrency(depositBreakdown.remainingBalance)}</span>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Final deposit is calculated from the confirmed order total after any valid coupon or delivery fee.
+            </p>
+          </div>
           <div className="rounded-[1.25rem] border border-border bg-white/70 px-4 py-4 text-sm text-muted-foreground">
             Paying with <span className="font-medium text-foreground">{selectedPaymentMethod?.settings.label}</span>
             {selectedPaymentMethod?.kind === "manual"
-              ? " will create the order first and show you the payment details on the next screen."
+              ? " will create the order first and show you how to send the 50% deposit on the next screen."
               : selectedPaymentMethod?.kind === "paypal_live"
-                ? " will open the secure PayPal checkout popup."
-                : " will redirect you to the secure card checkout."}
+                ? " will open the secure PayPal popup for the 50% deposit."
+                : " will redirect you to secure checkout for the 50% deposit."}
           </div>
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { updateOrderStatusAction } from "@/actions/admin";
+import { getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import type { OrderWithItems } from "@/lib/types/app";
 import { getCustomerOrderStatusLabel, getPaymentStatusLabel } from "@/lib/order-status";
 import { formatCurrency } from "@/lib/utils";
@@ -129,6 +130,7 @@ export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
               const unreadCustomerCount = (order.order_messages ?? []).filter(
                 (message) => message.sender_type === "customer" && !message.is_read
               ).length;
+              const paymentStatusCopy = getOrderPaymentStatusCopy(order);
 
               return (
               <TableRow key={order.id}>
@@ -158,6 +160,9 @@ export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
                     <p className="text-xs text-muted-foreground">
                       {getPaymentStatusLabel(order.payment_status)}
                     </p>
+                    {paymentStatusCopy ? (
+                      <p className="text-xs text-muted-foreground">{paymentStatusCopy}</p>
+                    ) : null}
                   </div>
                 </TableCell>
                 <TableCell>
