@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { OneSignalScript } from "@/components/site/onesignal-script";
 import { Providers } from "@/components/site/providers";
+import { TawkToScript } from "@/components/site/tawk-to-script";
 import { WhatsAppFloatButton } from "@/components/site/whatsapp-float-button";
 import { getCurrentUser, getCurrentUserRole } from "@/lib/auth";
 import { buildMetadata } from "@/lib/config/site";
@@ -41,6 +42,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${displayFont.variable} ${bodyFont.variable} font-sans antialiased`}>
         <OneSignalScript />
+        <TawkToScript />
         <Providers>
           <div className="relative flex min-h-screen flex-col">
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-hero-glow" />
