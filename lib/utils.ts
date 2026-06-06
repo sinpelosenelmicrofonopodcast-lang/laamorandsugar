@@ -34,7 +34,7 @@ export function slugify(input: string) {
 export function absoluteUrl(path = "") {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
+    "https://amorandsugarla.com";
 
   return `${baseUrl}${path}`;
 }

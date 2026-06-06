@@ -1,8 +1,11 @@
 import { CouponManager } from "@/components/admin/coupon-manager";
-import { getCoupons } from "@/lib/data/queries";
+import { getCoupons, getNewsletterSubscribers } from "@/lib/data/queries";
 
 export default async function AdminCouponsPage() {
-  const coupons = await getCoupons();
+  const [coupons, newsletterSubscribers] = await Promise.all([
+    getCoupons(),
+    getNewsletterSubscribers()
+  ]);
 
-  return <CouponManager coupons={coupons} />;
+  return <CouponManager coupons={coupons} newsletterSubscribers={newsletterSubscribers} />;
 }

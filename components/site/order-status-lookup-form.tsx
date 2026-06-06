@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 export function OrderStatusLookupForm() {
   const [isPending, startTransition] = useTransition();
+  const [turnstileToken, setTurnstileToken] = useState("");
   const form = useForm<OrderLookupValues>({
     resolver: zodResolver(orderLookupSchema),
     defaultValues: {
@@ -25,7 +27,10 @@ export function OrderStatusLookupForm() {
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const result = await lookupOrderStatusAction(values);
+      const result = await lookupOrderStatusAction({
+        ...values,
+        turnstileToken
+      });
       if (result?.error) {
         toast.error(result.error);
       }
@@ -53,6 +58,9 @@ export function OrderStatusLookupForm() {
           <div className="space-y-2">
             <Label htmlFor="phone">Phone number</Label>
             <Input id="phone" placeholder="(254) 555-1234" {...form.register("phone")} />
+          </div>
+          <div className="md:col-span-2">
+            <TurnstileWidget action="order_lookup" onVerify={setTurnstileToken} />
           </div>
           <div className="md:col-span-2">
             <Button type="submit" variant="gold" size="lg" disabled={isPending}>

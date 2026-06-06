@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 
 import { ProductDetailClient } from "@/components/site/product-detail-client";
 import { SectionHeading } from "@/components/site/section-heading";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
 import { getProductBySlug } from "@/lib/data/queries";
 import { buildMetadata } from "@/lib/config/site";
+import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo";
 import { resolveImageUrl } from "@/lib/utils";
+import { getProductDescription } from "@/lib/product-presentation";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -24,8 +27,10 @@ export async function generateMetadata({ params }: ProductDetailPageProps) {
   }
 
   return buildMetadata({
-    title: product.name,
-    description: product.short_description ?? product.description ?? undefined,
+    title: `${product.name} | Luxury Dessert Gifts in Killeen TX`,
+    description:
+      product.short_description ??
+      `${product.name} from L&A Amor & Sugar is a luxury custom dessert gift in Killeen, TX. Order for birthdays, teachers, Fort Hood gifts, graduations, events, and local dessert delivery.`,
     path: `/products/${slug}`,
     image:
       resolveImageUrl(
@@ -47,15 +52,31 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   return (
-    <div className="container py-16">
-      <SectionHeading
-        eyebrow={product.categories?.name ?? "Signature Treat"}
-        title={product.name}
-        description={product.short_description ?? undefined}
-      />
-      <div className="mt-10">
-        <ProductDetailClient product={product} />
+    <>
+      {[buildBreadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Menu", path: "/menu" }, { name: product.name, path: `/products/${product.slug}` }]), buildProductJsonLd(product)].map((schema, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <div className="container py-16">
+        <Breadcrumbs
+          items={[
+            { name: "Home", href: "/" },
+            { name: product.categories?.name ?? "Menu", href: product.categories?.slug ? `/collections/${product.categories.slug.toLowerCase()}` : "/menu" },
+            { name: product.name, href: `/products/${product.slug}` }
+          ]}
+        />
+        <SectionHeading
+          eyebrow={product.categories?.name ?? "Signature Treat"}
+          title={product.name}
+          description={product.short_description ?? getProductDescription(product)}
+        />
+        <div className="mt-10">
+          <ProductDetailClient product={product} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

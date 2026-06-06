@@ -5,20 +5,20 @@ import { absoluteUrl } from "@/lib/utils";
 export const siteConfig = {
   name: "L&A Amor & Sugar Co.",
   shortName: "L&A Amor & Sugar",
-  defaultMetaTitle: "L&A Amor & Sugar | Custom Desserts in Killeen, TX",
-  defaultTwitterTitle: "L&A Amor & Sugar | Custom Desserts",
+  defaultMetaTitle: "Luxury Chocolate Covered Strawberries in Killeen TX | L&A Amor & Sugar",
+  defaultTwitterTitle: "Luxury Dessert Gifts in Killeen TX | L&A Amor & Sugar",
   description:
-    "Chocolate strawberries, cake pops, dessert boxes, and custom treats made with love. Order online today.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    "Order luxury chocolate covered strawberries, custom desserts, cake pops, treat boxes, edible arrangements, and dessert delivery in Killeen TX, Fort Hood, and Central Texas.",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://amorandsugarla.com",
   ogImage: absoluteUrl("/og-image.jpg"),
   links: {
-    instagram: "https://instagram.com",
-    facebook: "https://facebook.com",
-    tiktok: "https://tiktok.com"
+    instagram: "https://www.instagram.com/amorandsugarla",
+    facebook: "https://www.facebook.com/amorandsugarla",
+    tiktok: "https://www.tiktok.com/@amorsugarla"
   },
   contact: {
-    email: "hello@amorandsugarco.com",
-    phone: "(555) 555-0147"
+    email: "info@amorandsugarla.com",
+    phone: "+19383365234"
   }
 } as const;
 
@@ -28,7 +28,8 @@ export function buildMetadata({
   path = "",
   image,
   imageAlt,
-  twitterTitle
+  twitterTitle,
+  noIndex = false
 }: {
   title?: string;
   description?: string;
@@ -36,6 +37,7 @@ export function buildMetadata({
   image?: string;
   imageAlt?: string;
   twitterTitle?: string;
+  noIndex?: boolean;
 } = {}): Metadata {
   const fullTitle = title
     ? title.includes(siteConfig.shortName) || title.includes(siteConfig.name)
@@ -75,6 +77,16 @@ export function buildMetadata({
     },
     alternates: {
       canonical: url
-    }
+    },
+    robots: noIndex
+      ? {
+          index: false,
+          follow: false,
+          googleBot: {
+            index: false,
+            follow: false
+          }
+        }
+      : undefined
   };
 }

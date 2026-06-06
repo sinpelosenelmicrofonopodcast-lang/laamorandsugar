@@ -6,12 +6,16 @@ import { checkoutSchema, type CheckoutValues } from "@/lib/validations";
 import { getSiteSettings } from "@/lib/data/queries";
 import { calculateDepositBreakdown } from "@/lib/order-payments";
 import { getAvailablePaymentMethods } from "@/lib/payments";
-import type { OrderRow, PaymentMethodCode, ProductRow } from "@/lib/types/app";
+import {
+  normalizeNewsletterEmail,
+  redeemNewsletterDiscount,
+  validateNewsletterDiscount
+} from "@/lib/newsletter";
+import type { FulfillmentOption, OrderRow, PaymentMethodCode, ProductRow } from "@/lib/types/app";
 import {
   CUSTOMER_ORDER_STATUS_MESSAGES,
   CUSTOMER_ORDER_STATUS_LABELS,
   deriveCustomerOrderStatus,
-  getCustomerOrderStatusLabel,
   getPaymentStatusLabel,
   mapCustomerOrderStatusToLegacyStatus,
   type CustomerOrderStatus
@@ -22,6 +26,7 @@ import {
   resolveVariantPrice,
   resolveVariantQuantity
 } from "@/lib/utils";
+import { buildOrderStatusEmailContent, premiumEmailTemplates } from "@/lib/email-templates";
 
 type CheckoutProduct = Pick<ProductRow, "id" | "name" | "slug" | "base_price"> & {
   product_images?: { image_url?: string | null; url?: string | null; is_primary?: boolean }[];
@@ -42,6 +47,11 @@ type CheckoutAddon = {
   product_id: string;
   name: string;
   price: number;
+};
+
+const customOptionLabels: Record<string, string> = {
+  cakeFlavor: "Cake flavor",
+  chocolateColor: "Chocolate color"
 };
 
 export type PreparedOrderItem = {
@@ -68,8 +78,11 @@ export type PreparedCheckoutOrder = {
     };
     kind: "stripe" | "manual" | "paypal_live";
   };
+  selectedFulfillmentOption: FulfillmentOption | null;
   subtotal: number;
   discountTotal: number;
+  discountSource: "newsletter" | "coupon" | null;
+  newsletterDiscountCode: string | null;
   deliveryFee: number;
   taxTotal: number;
   total: number;
@@ -89,7 +102,7 @@ export type PreparedCheckoutOrder = {
 };
 
 export function getSiteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://amorandsugarla.com";
 }
 
 export function generateOrderAccessToken() {
@@ -104,7 +117,7 @@ function getPayPalEnabled() {
   return Boolean(
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID &&
       process.env.PAYPAL_CLIENT_ID &&
-      process.env.PAYPAL_CLIENT_SECRET
+      (process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_SECRET)
   );
 }
 
@@ -129,6 +142,20 @@ export async function prepareCheckoutOrder(
     };
   }
 
+  const fulfillmentOptions = settings.delivery_zones.filter(
+    (option) => option.type === values.fulfillment_method
+  );
+  const selectedFulfillmentOption =
+    fulfillmentOptions.find((option) => option.id === values.fulfillment_option_id) ??
+    fulfillmentOptions[0] ??
+    null;
+
+  if (fulfillmentOptions.length > 0 && !selectedFulfillmentOption) {
+    return {
+      error: "That pickup or delivery option is not available right now."
+    };
+  }
+
   const productIds = [...new Set(values.items.map((item) => item.productId))];
   const variantIds = [
     ...new Set(values.items.map((item) => item.variantId).filter(Boolean))
@@ -138,6 +165,8 @@ export async function prepareCheckoutOrder(
     supabase
       .from("products")
       .select("id,name,slug,base_price,product_images(*)")
+      .eq("active", true)
+      .eq("status", "active")
       .in("id", productIds),
     variantIds.length
       ? supabase.from("product_variants").select("*").in("id", variantIds)
@@ -236,38 +265,68 @@ export async function prepareCheckoutOrder(
         id: addon.id,
         name: addon.name,
         price: addon.price
-      })),
+      })).concat(
+        Object.entries(cartItem.customOptions ?? {})
+          .filter(([, value]) => value)
+          .map(([key, value]) => ({
+            id: `custom-${key}`,
+            name: `${customOptionLabels[key] ?? key}: ${value}`,
+            price: 0
+          }))
+      ),
       image_url: product.product_images?.[0]?.image_url ?? cartItem.image ?? null
     });
   }
 
   let discountTotal = 0;
+  let discountSource: PreparedCheckoutOrder["discountSource"] = null;
+  let newsletterDiscountCode: string | null = null;
 
   if (values.coupon_code) {
-    const { data: coupon } = await supabase
-      .from("coupons")
-      .select("*")
-      .eq("code", values.coupon_code.toUpperCase())
-      .eq("active", true)
-      .maybeSingle();
+    const code = values.coupon_code.trim().toUpperCase();
 
-    if (coupon) {
-      if (!coupon.minimum_order_amount || subtotal >= coupon.minimum_order_amount) {
-        discountTotal =
-          coupon.discount_type === "percentage"
-            ? subtotal * (coupon.discount_value / 100)
-            : coupon.discount_value;
-        discountTotal = Math.min(discountTotal, subtotal);
+    if (code.startsWith("SWEET10-")) {
+      const newsletterResult = await validateNewsletterDiscount(supabase, {
+        email: normalizeNewsletterEmail(values.customer_email),
+        discountCode: code,
+        cartSubtotal: subtotal
+      });
+
+      if (newsletterResult.error) {
+        return { error: newsletterResult.error };
+      }
+
+      discountTotal = newsletterResult.discountAmount ?? 0;
+      discountSource = "newsletter";
+      newsletterDiscountCode = code;
+    } else {
+      const { data: coupon } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("code", code)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (coupon) {
+        if (!coupon.minimum_order_amount || subtotal >= coupon.minimum_order_amount) {
+          discountTotal =
+            coupon.discount_type === "percentage"
+              ? subtotal * (coupon.discount_value / 100)
+              : coupon.discount_value;
+          discountTotal = Math.min(discountTotal, subtotal);
+          discountSource = "coupon";
+        }
       }
     }
   }
 
+  const selectedOptionFee = selectedFulfillmentOption?.fee ?? 0;
   const deliveryFee =
     values.fulfillment_method === "delivery" &&
-    (!settings.free_delivery_threshold ||
-      subtotal - discountTotal < settings.free_delivery_threshold)
-      ? 20
-      : 0;
+    settings.free_delivery_threshold &&
+    subtotal - discountTotal >= settings.free_delivery_threshold
+      ? 0
+      : selectedOptionFee;
 
   const taxTotal = 0;
   const total = subtotal - discountTotal + deliveryFee + taxTotal;
@@ -278,8 +337,11 @@ export async function prepareCheckoutOrder(
       values,
       settings,
       selectedPaymentMethod,
+      selectedFulfillmentOption,
       subtotal,
       discountTotal,
+      discountSource,
+      newsletterDiscountCode,
       deliveryFee,
       taxTotal,
       total,
@@ -311,6 +373,8 @@ export function buildOrderMetadata(
     payment_due_now: prepared.amountDueNow,
     remaining_balance: prepared.remainingBalance,
     coupon_code: prepared.values.coupon_code ?? null,
+    discount_source: prepared.discountSource,
+    newsletter_discount_code: prepared.newsletterDiscountCode,
     payment_method: prepared.selectedPaymentMethod.code,
     payment_label: prepared.selectedPaymentMethod.settings.label,
     payment_kind: prepared.selectedPaymentMethod.kind,
@@ -318,6 +382,11 @@ export function buildOrderMetadata(
     payment_url: prepared.selectedPaymentMethod.settings.payment_url,
     payment_instructions: prepared.selectedPaymentMethod.settings.instructions,
     manual_payment_note: prepared.settings.payment_settings.manual_payment_note,
+    allergen_and_policy_acknowledged: prepared.values.policies_acknowledged,
+    fulfillment_option_id: prepared.selectedFulfillmentOption?.id ?? null,
+    fulfillment_option_label: prepared.selectedFulfillmentOption?.label ?? null,
+    fulfillment_option_type: prepared.selectedFulfillmentOption?.type ?? null,
+    fulfillment_option_fee: prepared.selectedFulfillmentOption?.fee ?? 0,
     ...extra
   };
 }
@@ -394,6 +463,61 @@ export async function createOrderRecord(
     customerVisible: true
   });
 
+  try {
+    const orderUrl = absoluteUrl(`/order-status/${orderAccessToken}`);
+    const confirmation = premiumEmailTemplates.orderConfirmation({
+      customerName: prepared.values.customer_name,
+      orderNumber,
+      orderUrl
+    });
+    const customerSubject = "Your sweet order has officially been received";
+    const customerEmail = await sendEmailNotificationIfConfigured({
+      to: prepared.values.customer_email,
+      subject: customerSubject,
+      html: confirmation.html,
+      text: confirmation.text
+    });
+    await createOrderNotification(supabase, {
+      orderId,
+      notificationType: "order_received",
+      channel: "email",
+      recipient: prepared.values.customer_email,
+      subject: customerSubject,
+      body: "Order confirmation email",
+      status: customerEmail.status,
+      sentAt: customerEmail.status === "sent" ? new Date().toISOString() : null
+    });
+
+    const settings = await getSiteSettings();
+    if (settings.support_email) {
+      const adminEmail = premiumEmailTemplates.adminOrderAlert({
+        orderNumber,
+        customerName: prepared.values.customer_name,
+        total: prepared.total,
+        adminUrl: absoluteUrl(`/admin/orders/${orderId}`)
+      });
+      const adminSubject = `New order ${orderNumber} from ${prepared.values.customer_name}`;
+      const adminResult = await sendEmailNotificationIfConfigured({
+        to: settings.support_email,
+        subject: adminSubject,
+        html: adminEmail.html,
+        text: adminEmail.text
+      });
+      await createOrderNotification(supabase, {
+        orderId,
+        notificationType: "admin_order_alert",
+        channel: "email",
+        recipient: settings.support_email,
+        subject: adminSubject,
+        body: "Admin new order alert",
+        status: adminResult.status,
+        sentAt: adminResult.status === "sent" ? new Date().toISOString() : null
+      });
+    }
+  } catch (error) {
+    console.error("[order:notifications:create]", error);
+  }
+
   return {
     orderId,
     orderNumber,
@@ -419,6 +543,33 @@ export async function ensureOrderStatusHistory(
     note: input.note ?? null,
     changed_by: input.changedBy,
     customer_visible: input.customerVisible ?? true
+  });
+}
+
+export async function redeemOrderNewsletterDiscount(supabase: any, order: {
+  id: string;
+  customer_email: string | null;
+  metadata?: unknown;
+}) {
+  const metadata =
+    order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+      ? order.metadata as Record<string, unknown>
+      : {};
+  const discountCode =
+    typeof metadata.newsletter_discount_code === "string"
+      ? metadata.newsletter_discount_code
+      : typeof metadata.coupon_code === "string" && metadata.coupon_code.startsWith("SWEET10-")
+        ? metadata.coupon_code
+        : null;
+
+  if (!discountCode || !order.customer_email) {
+    return;
+  }
+
+  await redeemNewsletterDiscount(supabase, {
+    email: order.customer_email,
+    discountCode,
+    orderId: order.id
   });
 }
 
@@ -458,59 +609,26 @@ export async function createOrderMessage(
     .eq("id", input.orderId);
 }
 
-export function buildOrderStatusEmailContent(input: {
-  customerName: string;
-  orderNumber: string;
-  status: string;
-  message: string;
-  fulfillmentMethod: string;
-  fulfillmentDate: string;
-  fulfillmentTimeSlot?: string | null;
-  orderAccessToken?: string | null;
-}) {
-  const statusLabel = getCustomerOrderStatusLabel(input.status);
-  const url = input.orderAccessToken
-    ? absoluteUrl(`/order-status/${input.orderAccessToken}`)
-    : absoluteUrl("/order-status");
-  const fulfillmentLabel =
-    input.fulfillmentMethod === "delivery" ? "Delivery details" : "Pickup details";
-  const fulfillmentText = [input.fulfillmentDate, input.fulfillmentTimeSlot]
-    .filter(Boolean)
-    .join(" • ");
-
-  return {
-    text: `Hi ${input.customerName},\n\n${input.message}\n\nOrder number: ${input.orderNumber}\nCurrent status: ${statusLabel}\n${fulfillmentLabel}: ${fulfillmentText || "We will confirm the timing soon."}\n\nView your order: ${url}\n\nL&A Amor & Sugar`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#fff9fb;padding:24px;color:#3a2d32;">
-        <div style="max-width:640px;margin:0 auto;background:white;border-radius:24px;padding:32px;border:1px solid #f5d8df;">
-          <p style="font-size:12px;letter-spacing:0.28em;text-transform:uppercase;color:#c69b38;font-weight:700;margin:0 0 16px;">L&A Amor & Sugar</p>
-          <h1 style="font-family:Georgia,serif;font-size:32px;line-height:1.2;margin:0 0 16px;">${statusLabel}</h1>
-          <p style="font-size:16px;line-height:1.8;margin:0 0 18px;">Hi ${input.customerName},</p>
-          <p style="font-size:16px;line-height:1.8;margin:0 0 22px;">${input.message}</p>
-          <div style="background:#fff4f7;border-radius:18px;padding:18px;margin-bottom:24px;">
-            <p style="margin:0 0 8px;"><strong>Order number:</strong> ${input.orderNumber}</p>
-            <p style="margin:0 0 8px;"><strong>Current status:</strong> ${statusLabel}</p>
-            <p style="margin:0;"><strong>${fulfillmentLabel}:</strong> ${fulfillmentText || "We will confirm the timing soon."}</p>
-          </div>
-          <a href="${url}" style="display:inline-block;background:#d4a437;color:white;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:700;">View order status</a>
-        </div>
-      </div>
-    `
-  };
-}
-
 export function getOrderEmailSubject(status: string, notificationType = "status_update") {
   if (notificationType === "new_message") {
     return "New message about your L&A Amor & Sugar order";
   }
 
   switch (status) {
+    case "pending_review":
+      return "Your sweet order has officially been received";
     case "confirmed":
-      return "Your L&A Amor & Sugar order is confirmed 💖";
+      return "Your L&A Amor & Sugar order is confirmed";
+    case "in_progress":
+      return "We’re making your treats fresh right now";
+    case "decorating":
+      return "We’re adding the finishing details to your sweet gift";
     case "ready_for_pickup":
-      return "Your sweet order is ready for pickup 🍓";
+      return "Your sweet order is ready for pickup";
     case "out_for_delivery":
-      return "Your L&A Amor & Sugar order is out for delivery 🚗";
+      return "Your L&A Amor & Sugar order is out for delivery";
+    case "delivered":
+      return "Your L&A Amor & Sugar order has been delivered";
     case "completed":
       return "Your L&A Amor & Sugar order has been completed";
     case "paid":

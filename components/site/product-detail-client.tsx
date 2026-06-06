@@ -1,16 +1,25 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import type { Route } from "next";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { ProductWithRelations } from "@/lib/types/app";
 import { getCartItemKey, useCartStore } from "@/lib/store/cart-store";
+import { getProductBadges, getProductStockState } from "@/lib/product-presentation";
 import { formatCurrency, resolveImageUrl } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+
+function buildProductAlt(product: ProductWithRelations) {
+  const category = product.categories?.name ?? "luxury dessert gift";
+  return `${product.name} ${category} by L&A Amor & Sugar in Killeen Texas`;
+}
 
 export function ProductDetailClient({ product }: { product: ProductWithRelations }) {
   const nutritionFacts = Array.isArray(product.nutrition_facts)
@@ -49,6 +58,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
       null
   );
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [isPending, startTransition] = useTransition();
   const addItem = useCartStore((state) => state.addItem);
@@ -58,6 +68,19 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
   const selectedAddons = product.product_addons.filter((addon) =>
     selectedAddonIds.includes(addon.id)
   );
+  const isCustomCakePopProduct = product.hasCustomOptions &&
+    [product.name, product.slug, product.categories?.name ?? ""]
+      .join(" ")
+      .toLowerCase()
+      .replace(/[-_]+/g, " ")
+      .includes("cake pop");
+  const badges = getProductBadges(product);
+  const productStockState = getProductStockState(product);
+  const selectedVariantSoldOut = selectedVariant?.stock_quantity === 0;
+  const soldOut = productStockState.stock === 0 || selectedVariantSoldOut;
+  const stockMessage = selectedVariantSoldOut
+    ? "This size is currently sold out."
+    : productStockState.message;
 
   const totalPrice = useMemo(
     () =>
@@ -71,7 +94,14 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           <div className="relative aspect-[1/1.05] overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-card">
-            <Image src={selectedImage} alt={product.name} fill className="object-cover" />
+            <Image
+              src={selectedImage}
+              alt={buildProductAlt(product)}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 58vw"
+              className="object-cover"
+            />
           </div>
           <div className="grid grid-cols-4 gap-3">
             {product.product_images.map((image) => (
@@ -85,7 +115,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               >
                 <Image
                   src={resolveImageUrl(image) ?? "/products/placeholder-elegance.svg"}
-                  alt={image.alt_text ?? product.name}
+                  alt={image.alt_text ?? buildProductAlt(product)}
                   fill
                   className="object-cover"
                 />
@@ -100,10 +130,30 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
                 {product.categories?.name ?? "Signature Treat"}
               </p>
+              {badges.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {badges.map((badge) => (
+                    <Badge
+                      key={badge}
+                      variant={badge === "SOLD OUT" || badge === "SEASONAL" ? "rose" : "gold"}
+                      className="animate-shimmer bg-[linear-gradient(110deg,rgba(255,255,255,0.88),rgba(197,155,69,0.22),rgba(255,255,255,0.88))] bg-[length:220%_100%] text-bakery-espresso shadow-sm"
+                    >
+                      {badge}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
               <h1 className="mt-3 font-serif text-5xl text-foreground">{product.name}</h1>
               <p className="mt-4 text-lg leading-8 text-muted-foreground">
                 {product.description}
               </p>
+              {stockMessage ? (
+                <p className={`mt-4 rounded-[1rem] px-4 py-3 text-sm font-semibold ${
+                  soldOut ? "bg-bakery-rose/10 text-bakery-rose" : "bg-bakery-gold/12 text-bakery-espresso"
+                }`}>
+                  {stockMessage}
+                </p>
+              ) : null}
             </div>
 
             {product.product_variants.length > 0 ? (
@@ -173,6 +223,37 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               </div>
             ) : null}
 
+            {product.hasCustomOptions ? (
+              <div className="space-y-3">
+                <Label>Custom options</Label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {product.customOptions.optionGroups.map((group) => (
+                    <div key={group.id} className="space-y-2">
+                      <Label htmlFor={`custom-option-${group.id}`}>{group.label}</Label>
+                      <select
+                        id={`custom-option-${group.id}`}
+                        className="flex h-12 w-full rounded-2xl border border-border bg-white/80 px-4 text-sm"
+                        value={selectedCustomOptions[group.id] ?? ""}
+                        onChange={(event) =>
+                          setSelectedCustomOptions((current) => ({
+                            ...current,
+                            [group.id]: event.target.value
+                          }))
+                        }
+                      >
+                        <option value="">No preference</option>
+                        {group.values.map((value) => (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="flex items-center justify-between rounded-[1.5rem] bg-secondary/80 px-5 py-4">
               <div>
                 <p className="text-sm text-muted-foreground">Current selection</p>
@@ -203,7 +284,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               variant="gold"
               size="lg"
               className="w-full"
-              disabled={isPending}
+              disabled={isPending || soldOut}
               onClick={() =>
                 startTransition(() => {
                   const cartItem = {
@@ -218,6 +299,11 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
                     variantId: selectedVariant?.id ?? null,
                     variantName: selectedVariant?.name ?? null,
                     variantQuantity: selectedVariant?.quantity ?? null,
+                    customOptions: Object.fromEntries(
+                      product.customOptions.optionGroups
+                        .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
+                        .filter(([, value]) => value)
+                    ),
                     addons: selectedAddons.map((addon) => ({
                       id: addon.id,
                       name: addon.name,
@@ -232,8 +318,20 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
                 })
               }
             >
-              Add to cart
+              {soldOut ? "Sold out" : "Add to cart"}
             </Button>
+            <div className="rounded-[1.25rem] border border-bakery-gold/20 bg-bakery-gold/10 p-4 text-sm text-bakery-espresso">
+              <p className="font-medium text-foreground">Secure checkout, local pickup, and delivery options</p>
+              <p className="mt-1 text-muted-foreground">
+                Perfect for Killeen, Fort Hood, Harker Heights, Belton, Temple, birthdays,
+                teacher gifts, graduations, and custom sweet moments.
+              </p>
+            </div>
+            {isCustomCakePopProduct ? (
+              <Button asChild variant="outline" size="lg" className="w-full">
+                <Link href={"/treat-designer" as Route}>Open Treat Designer</Link>
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -288,6 +386,69 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="overflow-hidden border-bakery-gold/20 bg-bakery-gold/10">
+        <CardContent className="space-y-3 p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+            Handcrafted with love 🤍
+          </p>
+          <p className="max-w-3xl text-sm leading-7 text-bakery-espresso">
+            This food is made in a home kitchen and is not inspected by the Texas Department of
+            State Health Services.
+          </p>
+        </CardContent>
+      </Card>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-bakery-gold/20 bg-white/95 p-3 shadow-[0_-14px_40px_rgba(95,74,65,0.12)] backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{product.name}</p>
+            <p className="text-sm font-semibold text-bakery-rose">{formatCurrency(totalPrice)}</p>
+          </div>
+          <Button
+            variant="gold"
+            className="shrink-0 rounded-full"
+            disabled={isPending}
+            aria-disabled={soldOut}
+            onClick={() =>
+              soldOut
+                ? toast.error("Sold out", {
+                    description: "This item is currently unavailable."
+                  })
+                :
+              startTransition(() => {
+                const cartItem = {
+                  productId: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  image: selectedImage,
+                  unitPrice:
+                    (selectedVariant?.price ?? product.base_price) +
+                    selectedAddons.reduce((sum, addon) => sum + addon.price, 0),
+                  quantity,
+                  variantId: selectedVariant?.id ?? null,
+                  variantName: selectedVariant?.name ?? null,
+                  variantQuantity: selectedVariant?.quantity ?? null,
+                  customOptions: Object.fromEntries(
+                    product.customOptions.optionGroups
+                      .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
+                      .filter(([, value]) => value)
+                  ),
+                  addons: selectedAddons.map((addon) => ({
+                    id: addon.id,
+                    name: addon.name,
+                    price: addon.price
+                  }))
+                };
+
+                addItem(cartItem);
+                toast.success("Added to cart");
+              })
+            }
+          >
+            {soldOut ? "Sold out" : "Add to cart"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

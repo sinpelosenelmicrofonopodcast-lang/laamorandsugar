@@ -1,9 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Fragment } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   CalendarDays,
+  Camera,
+  Coffee,
   Gift,
+  GraduationCap,
   Heart,
   Package,
   Palette,
@@ -21,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildMetadata } from "@/lib/config/site";
+import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
+import { buildFaqJsonLd } from "@/lib/seo";
 import type {
   HomepageIconName,
   HomepageImageAsset,
@@ -34,6 +41,7 @@ import {
   getHomepageContent,
   getMediaAssets,
   getProducts,
+  getSiteSettings,
   getTestimonials
 } from "@/lib/data/queries";
 
@@ -108,25 +116,91 @@ function mapMediaAssetsToGallery(
     }));
 }
 
+const occasionCards = [
+  { title: "Birthday Favorites", href: "/shop?q=birthday", icon: Gift },
+  { title: "Romantic Gifts", href: "/shop?q=romantic", icon: Heart },
+  { title: "Teacher Appreciation", href: "/shop?q=teacher", icon: Star },
+  { title: "Coffee Lover Collection", href: "/shop?q=coffee", icon: Coffee },
+  { title: "Luxury Event Treats", href: "/custom-orders?occasion=events", icon: Sparkles },
+  { title: "Viral Favorites", href: "/shop?q=viral", icon: ShoppingBag },
+  { title: "Girls Night Collection", href: "/shop?q=girls%20night", icon: Package },
+  { title: "Graduation Collection", href: "/shop?q=graduation", icon: GraduationCap },
+  { title: "Office Gifts", href: "/shop?q=office", icon: Truck },
+  { title: "Just Because", href: "/shop?q=just%20because", icon: Heart }
+];
+
+const giftBoxSteps = [
+  "Select your treats",
+  "Pick colors and theme",
+  "Add logo, note, or custom details",
+  "Choose pickup or local delivery"
+];
+
+const homeFaqs = [
+  {
+    question: "Do you make chocolate covered strawberries in Killeen TX?",
+    answer:
+      "Yes. L&A Amor & Sugar makes gift-ready chocolate covered strawberries, dessert boxes, cake pops, Oreos, and custom treats for Killeen and nearby Central Texas customers."
+  },
+  {
+    question: "Do you offer local dessert delivery?",
+    answer:
+      "Local delivery may be available in Killeen, Fort Hood, Harker Heights, Belton, Temple, and nearby areas depending on order date, distance, and availability."
+  },
+  {
+    question: "Can I customize a dessert gift?",
+    answer:
+      "Yes. You can request colors, themes, drizzle, sprinkles, packaging, notes, logos, and personal details through custom orders or the Treat Designer."
+  },
+  {
+    question: "How much notice do custom desserts need?",
+    answer:
+      "Two to three days notice is recommended for handcrafted dessert gifts, especially around weekends, holidays, graduations, and teacher appreciation week."
+  }
+];
+
+function BrandedGalleryPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="relative aspect-[4/4.5] overflow-hidden rounded-[1.5rem] bg-[linear-gradient(145deg,rgba(255,250,246,0.98),rgba(248,217,221,0.72))]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(197,155,69,0.24),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(216,109,146,0.18),transparent_42%)]" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+        <Camera className="h-8 w-8 text-bakery-gold" />
+        <p className="mt-4 font-serif text-2xl leading-tight text-bakery-espresso">
+          {label}
+        </p>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.24em] text-bakery-rose">
+          Photo coming soon
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export async function generateMetadata() {
   const homepage = await getHomepageContent();
+  const homeContent = homepage.content_json.home_content;
 
   return buildMetadata({
-    title: homepage.seo_title ?? "L&A Amor & Sugar | Custom Desserts & Sweet Treats in Killeen, TX",
+    title:
+      homepage.seo_title ??
+      homeContent.hero.headline,
     description:
       homepage.seo_description ??
-      "Custom desserts, chocolate-covered strawberries, cake pops, dessert boxes, and seasonal treats made with love in Killeen, TX. Order online or request a custom treat box.",
-    path: "/"
+      homeContent.hero.subheadline,
+    path: "/",
+    image: homepage.hero_image_url ?? homepage.hero_mobile_image_url ?? undefined,
+    imageAlt: homepage.hero_image_alt ?? homeContent.hero.headline
   });
 }
 
 export default async function HomePage() {
-  const [homepage, allProducts, testimonials, specials, mediaAssets] = await Promise.all([
+  const [homepage, allProducts, testimonials, specials, mediaAssets, settings] = await Promise.all([
     getHomepageContent(),
     getProducts(),
     getTestimonials(),
     getActiveSeasonalSpecials(),
-    getMediaAssets()
+    getMediaAssets(),
+    getSiteSettings()
   ]);
 
   const featuredFallback = allProducts.filter((product) => product.featured).slice(0, 6);
@@ -152,11 +226,114 @@ export default async function HomePage() {
     homepage.content_json.gallery.images.length > 0
       ? homepage.content_json.gallery.images
       : mapMediaAssetsToGallery(mediaAssets);
+  const homeContent = homepage.content_json.home_content;
+  const aboutLines = homeContent.about
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const aboutTitle = aboutLines[0] ?? homeContent.about;
+  const aboutDescription = aboutLines.slice(1).join("\n\n") || homeContent.about;
+  const testimonialsHeading =
+    homepage.testimonials_heading ?? DEFAULT_HOMEPAGE_CONTENT.testimonials_heading;
 
   const heroPrimaryHref = homepage.hero_primary_cta_href ?? "/shop";
-  const heroPrimaryLabel = homepage.hero_primary_cta_label ?? "Shop Treats";
+  const heroPrimaryLabel = homeContent.hero.cta_primary;
   const heroSecondaryHref = homepage.hero_secondary_cta_href ?? "/custom-orders";
-  const heroSecondaryLabel = homepage.hero_secondary_cta_label ?? "Start Custom Order";
+  const heroSecondaryLabel = homeContent.hero.cta_secondary;
+  const productCtaLabel = homeContent.hero.cta_primary;
+  const urgencyItems = [
+    "Limited handcrafted availability this week",
+    "Orders require 2-3 days notice",
+    "Same-day availability may be limited",
+    "Local delivery in Killeen, TX"
+  ];
+
+  const occasionSection = (
+    <section className="container py-16 sm:py-20">
+      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <SectionHeading
+          eyebrow="Perfect For"
+          title="Shop by the moment you want to create"
+          description="Birthday treats, teacher gifts, office gifts, romantic surprises, graduation boxes, and custom desserts for Killeen, TX celebrations."
+        />
+        <Button asChild variant="outline" className="md:mb-1">
+          <Link href="/shop">Explore all gifts</Link>
+        </Button>
+      </div>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {occasionCards.map((occasion) => {
+          const Icon = occasion.icon;
+
+          return (
+            <a key={occasion.title} href={occasion.href} className="group">
+              <div className="h-full rounded-[1.5rem] border border-white/75 bg-white/82 p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_60px_rgba(120,85,63,0.13)]">
+                <div className="flex items-center justify-between gap-4">
+                  <Icon className="h-5 w-5 text-bakery-gold" />
+                  <ArrowRight className="h-4 w-4 text-bakery-rose transition group-hover:translate-x-1" />
+                </div>
+                <h3 className="mt-5 font-serif text-2xl leading-tight text-foreground">
+                  {occasion.title}
+                </h3>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  const giftBoxSection = (
+    <section className="container py-16 sm:py-20">
+      <div className="overflow-hidden rounded-[2.5rem] border border-white/75 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(255,244,247,0.84),rgba(197,155,69,0.12))] p-7 shadow-card sm:p-10">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <Badge variant="gold">Personalized sweet gifts</Badge>
+            <h2 className="mt-5 font-serif text-4xl leading-tight text-foreground sm:text-5xl">
+              Build Your Gift Box
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">
+              Pick your treats, colors, theme, packaging, and personal details. We’ll turn your idea into a gift-ready sweet experience.
+            </p>
+            <Button asChild variant="gold" size="lg" className="mt-8 shadow-glow">
+              <Link href="/custom-orders">Start Custom Order</Link>
+            </Button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {giftBoxSteps.map((step, index) => (
+              <div
+                key={step}
+                className="rounded-[1.5rem] border border-white/80 bg-white/82 p-5 shadow-sm transition duration-300 hover:-translate-y-1"
+              >
+                <span className="text-xs font-semibold uppercase tracking-[0.26em] text-bakery-gold">
+                  Step {index + 1}
+                </span>
+                <p className="mt-3 font-serif text-2xl leading-tight text-foreground">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const treatDesignerPromo = (
+    <section className="container py-16 sm:py-20">
+      <div className="grid gap-8 rounded-[2.5rem] border border-white/75 bg-white/84 p-7 shadow-card sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <Badge variant="rose">Premium personalization tool</Badge>
+          <h2 className="mt-5 font-serif text-4xl leading-tight text-foreground sm:text-5xl">
+            Design Your Own Treat
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+            Choose your treat, colors, drizzle, sprinkles, edible logo, and packaging details.
+          </p>
+        </div>
+        <Button asChild variant="gold" size="lg" className="shadow-glow">
+          <Link href="/treat-designer">Open Treat Designer</Link>
+        </Button>
+      </div>
+    </section>
+  );
 
   const sectionNodes: Partial<Record<HomepageSectionKey, React.ReactNode>> = {
     featured:
@@ -164,20 +341,16 @@ export default async function HomePage() {
         <section className="container py-16 sm:py-20">
           <div className="flex items-end justify-between gap-6">
             <SectionHeading
-              eyebrow="Best Sellers"
-              title={homepage.featured_heading ?? "Best Sellers"}
-              description={
-                homepage.featured_description ??
-                "Our most-loved treats, perfect for gifts, events, or treating yourself."
-              }
+              title={homeContent.best_sellers.title}
+              description={homeContent.best_sellers.subtitle}
             />
             <Button asChild variant="outline" className="hidden md:inline-flex">
-              <Link href="/shop">Browse all treats</Link>
+              <Link href="/shop">{heroPrimaryLabel}</Link>
             </Button>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} ctaLabel="View Product" />
+              <ProductCard key={product.id} product={product} ctaLabel={productCtaLabel} />
             ))}
           </div>
         </section>
@@ -198,24 +371,27 @@ export default async function HomePage() {
               ) : (
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(248,217,221,0.7),transparent_52%),linear-gradient(135deg,rgba(255,249,244,0.98),rgba(255,255,255,0.84))]" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-bakery-espresso/20 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 rounded-full bg-white/88 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold backdrop-blur">
-                Custom desserts
+                {homeContent.custom_order.title}
               </div>
             </div>
             <div className="flex flex-col justify-center">
               <SectionHeading
-                eyebrow="Made for your moment"
-                title={homepage.content_json.custom_orders.title}
-                description={homepage.content_json.custom_orders.description}
+                eyebrow="Build your gift box"
+                title="Pick every detail. We’ll make it gift-ready."
+                description="Pick your treats, colors, theme, packaging, and personal details. We’ll turn your idea into a gift-ready sweet experience."
               />
+              <p className="mt-6 text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+                How it comes together
+              </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                {homepage.content_json.custom_orders.bullets.map((bullet) => (
+                {giftBoxSteps.map((bullet, index) => (
                   <div
                     key={bullet}
                     className="rounded-[1.35rem] border border-border/70 bg-white/85 px-4 py-3 text-sm font-medium text-foreground"
                   >
-                    {bullet}
+                    {index + 1}. {bullet}
                   </div>
                 ))}
               </div>
@@ -235,7 +411,6 @@ export default async function HomePage() {
       <section className="container py-16 sm:py-20">
         <div className="grid gap-8 lg:grid-cols-[0.76fr_1.24fr]">
           <SectionHeading
-            eyebrow="How It Works"
             title={homepage.process_heading ?? homepage.content_json.how_it_works.title}
             description={homepage.process_description ?? undefined}
           />
@@ -271,7 +446,6 @@ export default async function HomePage() {
             <Card className="overflow-hidden border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(248,217,221,0.5))] shadow-card">
               <CardContent className="space-y-6 p-8">
                 <SectionHeading
-                  eyebrow="Seasonal Specials"
                   title={homepage.content_json.seasonal.title}
                   description={homepage.content_json.seasonal.subtitle}
                 />
@@ -288,7 +462,9 @@ export default async function HomePage() {
                 ) : null}
                 {selectedSpecials[0] ? (
                   <div className="rounded-[1.6rem] border border-white/70 bg-white/82 p-5">
-                    <Badge variant="rose">Limited time</Badge>
+                    <Badge variant="rose">
+                      {selectedSpecials[0].subtitle ?? homepage.content_json.seasonal.title}
+                    </Badge>
                     <h3 className="mt-3 font-serif text-3xl text-foreground">
                       {selectedSpecials[0].title}
                     </h3>
@@ -308,7 +484,7 @@ export default async function HomePage() {
             </Card>
             <div className="grid gap-6 md:grid-cols-2">
               {seasonalProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} ctaLabel="View Product" />
+                <ProductCard key={product.id} product={product} ctaLabel={productCtaLabel} />
               ))}
             </div>
           </div>
@@ -317,9 +493,8 @@ export default async function HomePage() {
     trust: homepage.content_json.trust.is_enabled ? (
       <section className="container py-16 sm:py-20">
         <SectionHeading
-          eyebrow="Our Promise"
-          title={homepage.content_json.trust.title}
-          description={homepage.content_json.trust.description || undefined}
+          title={aboutTitle}
+          description={aboutDescription}
           align="center"
           className="mx-auto max-w-3xl"
         />
@@ -331,7 +506,9 @@ export default async function HomePage() {
                 <CardContent className="p-6">
                   <Icon className="h-6 w-6 text-bakery-gold" />
                   <h3 className="mt-5 font-serif text-3xl text-foreground">{card.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{card.text}</p>
+                  <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                    {card.text}
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -343,8 +520,7 @@ export default async function HomePage() {
       homepage.content_json.testimonials.is_enabled && selectedTestimonials.length > 0 ? (
         <section className="container py-16 sm:py-20">
           <SectionHeading
-            eyebrow="Testimonials"
-            title={homepage.testimonials_heading ?? "Sweet Words From Our Customers"}
+            title={testimonialsHeading}
             description={homepage.testimonials_description ?? undefined}
             align="center"
             className="mx-auto max-w-3xl"
@@ -357,42 +533,46 @@ export default async function HomePage() {
         </section>
       ) : null,
     gallery:
-      homepage.content_json.gallery.is_enabled && galleryImages.length > 0 ? (
+      homepage.content_json.gallery.is_enabled ? (
         <section className="container py-16 sm:py-20">
           <SectionHeading
-            eyebrow="Gallery"
+            eyebrow="Real Sweet Moments"
             title={homepage.content_json.gallery.title}
-            description="A look at the treat boxes, dipped sweets, and custom details our clients love most."
+            description="A polished look at recent creations, customer photos, and gift-ready custom desserts as the gallery grows."
             align="center"
             className="mx-auto max-w-3xl"
           />
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {galleryImages.slice(0, 12).map((image, index) => (
-              <div
-                key={`${image.image_url}-${index}`}
-                className="group overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 shadow-card"
-              >
-                <div className="relative aspect-[4/4.5] overflow-hidden">
-                  <Image
-                    src={image.image_url}
-                    alt={image.alt_text}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 25vw"
-                    className="object-cover transition duration-700 group-hover:scale-[1.05]"
-                  />
-                </div>
-                {(image.title || image.caption) ? (
-                  <div className="space-y-1 p-4">
-                    {image.title ? (
-                      <p className="font-medium text-foreground">{image.title}</p>
-                    ) : null}
-                    {image.caption ? (
-                      <p className="text-sm text-muted-foreground">{image.caption}</p>
+            {galleryImages.length > 0
+              ? galleryImages.slice(0, 12).map((image, index) => (
+                  <div
+                    key={`${image.image_url}-${index}`}
+                    className="group overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 shadow-card"
+                  >
+                    <div className="relative aspect-[4/4.5] overflow-hidden">
+                      <Image
+                        src={image.image_url}
+                        alt={image.alt_text}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 25vw"
+                        className="object-cover transition duration-700 group-hover:scale-[1.05]"
+                      />
+                    </div>
+                    {(image.title || image.caption) ? (
+                      <div className="space-y-1 p-4">
+                        {image.title ? (
+                          <p className="font-medium text-foreground">{image.title}</p>
+                        ) : null}
+                        {image.caption ? (
+                          <p className="text-sm text-muted-foreground">{image.caption}</p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
-            ))}
+                ))
+              : ["Custom dessert boxes", "Chocolate-covered strawberries", "Edible arrangements", "Event sweets"].map(
+                  (label) => <BrandedGalleryPlaceholder key={label} label={label} />
+                )}
           </div>
         </section>
       ) : null,
@@ -412,9 +592,8 @@ export default async function HomePage() {
             ) : null}
             <div className="relative mx-auto max-w-3xl text-center">
               <SectionHeading
-                eyebrow="Start Your Order"
-                title={homepage.cta_heading ?? homepage.content_json.final_cta.title}
-                description={homepage.cta_description ?? homepage.content_json.final_cta.text}
+                title={homeContent.final_cta.title}
+                description={homeContent.final_cta.text}
                 align="center"
                 className="mx-auto max-w-3xl"
               />
@@ -425,7 +604,7 @@ export default async function HomePage() {
                   </a>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <Link href="/shop">Browse Treats</Link>
+                  <Link href="/shop">{heroPrimaryLabel}</Link>
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
@@ -448,20 +627,44 @@ export default async function HomePage() {
       </section>
     ) : null
   };
+  const homeFaqSection = (
+    <section className="container py-16 sm:py-20">
+      <SectionHeading
+        eyebrow="Dessert gifting FAQ"
+        title="Sweet details before you order"
+        description="Helpful answers for Killeen, Fort Hood, and Central Texas customers planning chocolate covered strawberries, custom desserts, cake pops, treat boxes, and edible gifts."
+        align="center"
+        className="mx-auto max-w-3xl"
+      />
+      <div className="mt-10 grid gap-4 md:grid-cols-2">
+        {homeFaqs.map((faq) => (
+          <article key={faq.question} className="rounded-[1.6rem] border border-white/75 bg-white/84 p-6 shadow-sm">
+            <h2 className="font-serif text-2xl leading-tight text-foreground">{faq.question}</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 
   return (
-    <div className="pb-24">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaqJsonLd(homeFaqs)) }}
+      />
+      <div className="pb-24">
       <section className="container py-14 sm:py-18 lg:py-24">
         <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
           <div className="fancy-border relative overflow-hidden rounded-[2.75rem] border border-white/60 bg-white/80 p-8 shadow-[0_28px_80px_rgba(120,85,63,0.14)] backdrop-blur sm:p-10 lg:p-12">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(197,155,69,0.17),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(248,217,221,0.55),transparent_38%)]" />
-            {homepage.hero_background_image_url ? (
-              <Image
-                src={homepage.hero_background_image_url}
-                alt={homepage.hero_background_image_alt ?? "Soft luxury dessert background"}
-                fill
-                priority
-                className="object-cover opacity-10"
+              {homepage.hero_background_image_url ? (
+                <Image
+                  src={homepage.hero_background_image_url}
+                  alt={homepage.hero_background_image_alt ?? "Homepage background"}
+                  fill
+                  priority
+                  className="object-cover opacity-10"
                 sizes="100vw"
               />
             ) : null}
@@ -479,17 +682,20 @@ export default async function HomePage() {
               </div>
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 <Badge variant="gold">
-                  {homepage.hero_eyebrow ?? "Custom sweets made with love in Killeen, TX"}
+                  {homeContent.hero.eyebrow}
                 </Badge>
                 <span className="rounded-full border border-white/80 bg-white/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-bakery-espresso/80">
-                  Gift-ready treats for every sweet moment
+                  {homeContent.hero.badge}
                 </span>
               </div>
               <h1 className="max-w-3xl font-serif text-5xl leading-none tracking-tight text-foreground sm:text-6xl">
-                {homepage.hero_title ?? "Luxury Custom Desserts for Every Sweet Moment"}
+                {homeContent.hero.headline}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-                {homepage.hero_description}
+                {homeContent.hero.subheadline}
+              </p>
+              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-bakery-rose">
+                {homeContent.hero.urgency}
               </p>
               <div className="mt-9 flex flex-col gap-4 sm:flex-row">
                 <Button asChild variant="gold" size="lg">
@@ -499,8 +705,11 @@ export default async function HomePage() {
                   <a href={heroSecondaryHref}>{heroSecondaryLabel}</a>
                 </Button>
               </div>
+              <p className="mt-6 max-w-2xl text-base italic leading-7 text-foreground/80">
+                {homeContent.hero.micro_copy}
+              </p>
               <div className="mt-10 flex flex-wrap gap-3">
-                {["Chocolate-covered strawberries", "Cake pops", "Dessert boxes", "Custom orders"].map(
+                {homeContent.hero.chips.map(
                   (label) => (
                     <div
                       key={label}
@@ -519,7 +728,7 @@ export default async function HomePage() {
               {homepage.hero_image_url ? (
                 <Image
                   src={homepage.hero_image_url}
-                  alt={homepage.hero_image_alt ?? "Luxury custom desserts by L&A Amor & Sugar"}
+                  alt={homepage.hero_image_alt ?? homeContent.hero.image_title}
                   fill
                   priority
                   className="hidden object-cover sm:block"
@@ -532,7 +741,7 @@ export default async function HomePage() {
                   alt={
                     homepage.hero_mobile_image_alt ??
                     homepage.hero_image_alt ??
-                    "Luxury custom desserts by L&A Amor & Sugar"
+                    homeContent.hero.image_title
                   }
                   fill
                   priority
@@ -540,13 +749,13 @@ export default async function HomePage() {
                   sizes="100vw"
                 />
               ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-bakery-espresso/24 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 max-w-sm rounded-[1.5rem] bg-white/88 p-5 shadow-card backdrop-blur">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-bakery-gold">
-                  Custom desserts
+                  {homeContent.hero.image_badge}
                 </p>
                 <h2 className="mt-3 font-serif text-3xl leading-tight text-foreground">
-                  Styled beautifully for gifting, events, and celebrations.
+                  {homeContent.hero.image_title}
                 </h2>
               </div>
             </div>
@@ -554,10 +763,10 @@ export default async function HomePage() {
               <CardContent className="p-6">
                 <CalendarDays className="h-6 w-6 text-bakery-rose" />
                 <h2 className="mt-5 font-serif text-3xl text-foreground">
-                  Reserve your date early
+                  {homeContent.hero.reserve_card_title}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Custom orders are best placed 2 to 3 days ahead, and event treats may need a little extra lead time.
+                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                  {homeContent.hero.reserve_card_text}
                 </p>
               </CardContent>
             </Card>
@@ -565,10 +774,10 @@ export default async function HomePage() {
               <CardContent className="p-6">
                 <Truck className="h-6 w-6 text-bakery-gold" />
                 <h2 className="mt-5 font-serif text-3xl text-foreground">
-                  Pickup or local delivery
+                  {homeContent.hero.delivery_card_title}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Choose the option that works best for your celebration and let us handle the sweet details.
+                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                  {homeContent.hero.delivery_card_text}
                 </p>
               </CardContent>
             </Card>
@@ -576,9 +785,34 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="container pb-6">
+        <div className="grid gap-3 rounded-[1.75rem] border border-bakery-gold/20 bg-white/82 p-4 shadow-card backdrop-blur md:grid-cols-4">
+          {urgencyItems.map((item) => (
+            <div
+              key={item}
+              className="flex items-center gap-3 rounded-full bg-[linear-gradient(135deg,rgba(255,255,255,0.9),rgba(255,244,247,0.72))] px-4 py-3 text-sm font-semibold text-bakery-espresso"
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-bakery-gold" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {homepage.content_json.sections_order.map((sectionKey) => (
-        <div key={sectionKey}>{sectionNodes[sectionKey] ?? null}</div>
+        <Fragment key={sectionKey}>
+          {sectionNodes[sectionKey] ?? null}
+          {sectionKey === "featured" ? occasionSection : null}
+          {sectionKey === "custom_orders" && !homepage.content_json.custom_orders.is_enabled
+            ? giftBoxSection
+            : null}
+          {sectionKey === "seasonal" && settings.feature_settings.treat_designer_enabled
+            ? treatDesignerPromo
+            : null}
+          {sectionKey === "testimonials" ? homeFaqSection : null}
+        </Fragment>
       ))}
-    </div>
+      </div>
+    </>
   );
 }

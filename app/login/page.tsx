@@ -2,9 +2,10 @@ import { LoginForm } from "@/components/site/login-form";
 import { buildMetadata } from "@/lib/config/site";
 
 export const metadata = buildMetadata({
-  title: "Admin Login",
-  description: "Sign in to manage products, orders, content, and business settings.",
-  path: "/login"
+  title: "Team Sign In",
+  description: "Secure team access for L&A Amor & Sugar.",
+  path: "/login",
+  noIndex: true
 });
 
 export default function LoginPage() {

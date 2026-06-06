@@ -18,6 +18,7 @@ declare global {
 type OneSignalClient = {
   Notifications: {
     requestPermission: () => Promise<void>;
+    permission?: boolean;
   };
   User?: {
     PushSubscription?: {

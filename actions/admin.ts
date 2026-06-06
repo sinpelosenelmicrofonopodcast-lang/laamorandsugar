@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdminAccess } from "@/lib/auth";
+import { logAdminAudit } from "@/lib/security/audit";
+import { sanitizeUnknown } from "@/lib/security/sanitize";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getErrorMessage, slugify } from "@/lib/utils";
 import {
@@ -14,6 +16,11 @@ import {
   seasonalSpecialSchema,
   siteSettingsSchema,
   testimonialSchema,
+  treatAddOnSchema,
+  treatDesignerProductSchema,
+  treatOptionGroupSchema,
+  treatOptionSchema,
+  treatSprinkleSetSchema,
   updateCustomOrderStatusSchema,
   updateOrderStatusSchema
 } from "@/lib/validations";
@@ -21,6 +28,19 @@ import type { AboutPageContentRow, HomepageContentRow, SiteSettingsRow } from "@
 
 function normalizeString(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeCustomOptionId(label: string, fallback: string) {
+  return slugify(label) || fallback;
+}
+
+function isUuid(value: string | null | undefined) {
+  return Boolean(
+    value &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value
+      )
+  );
 }
 
 async function insertProductImages(
@@ -145,7 +165,9 @@ async function saveProductRecord(
   if (
     error.code === "PGRST204" &&
     typeof error.message === "string" &&
-    (error.message.includes("nutrition_") || error.message.includes("'allergen_statement'"))
+    (error.message.includes("nutrition_") ||
+      error.message.includes("'allergen_statement'") ||
+      error.message.includes("'custom_options'"))
   ) {
     return productId
       ? await supabase
@@ -166,8 +188,8 @@ async function saveProductRecord(
 
 export async function upsertCategoryAction(input: unknown) {
   try {
-    await requireAdminAccess();
-    const values = categorySchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+    const values = categorySchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
 
     const payload = {
@@ -191,6 +213,15 @@ export async function upsertCategoryAction(input: unknown) {
     revalidatePath("/shop");
     revalidatePath("/admin/categories");
 
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: values.id ? "category_updated" : "category_created",
+      targetType: "category",
+      targetId: values.id ?? null,
+      metadata: { slug: values.slug }
+    });
+
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };
@@ -199,7 +230,7 @@ export async function upsertCategoryAction(input: unknown) {
 
 export async function deleteCategoryAction(categoryId: string) {
   try {
-    await requireAdminAccess();
+    const { user, role } = await requireAdminAccess();
     const supabase = createAdminClient() as any;
     const { error } = await supabase.from("categories").delete().eq("id", categoryId);
 
@@ -209,6 +240,14 @@ export async function deleteCategoryAction(categoryId: string) {
 
     revalidatePath("/shop");
     revalidatePath("/admin/categories");
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "category_deleted",
+      targetType: "category",
+      targetId: categoryId,
+      severity: "warning"
+    });
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };
@@ -217,8 +256,8 @@ export async function deleteCategoryAction(categoryId: string) {
 
 export async function upsertProductAction(input: unknown) {
   try {
-    await requireAdminAccess();
-    const values = productSchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+    const values = productSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     const normalizedSlug = slugify(values.slug || values.name);
 
@@ -255,6 +294,41 @@ export async function upsertProductAction(input: unknown) {
           : null,
       allergen_statement: normalizeString(values.allergen_statement ?? null)
     };
+    const customOptionGroups = values.hasCustomOptions
+      ? values.customOptions.optionGroups
+          .map((group, index) => {
+            const label = group.label.trim();
+            const values = group.values.map((option) => option.trim()).filter(Boolean);
+
+            if (!label || values.length === 0) {
+              return null;
+            }
+
+            return {
+              id: normalizeString(group.id) ?? normalizeCustomOptionId(label, `option-${index + 1}`),
+              label,
+              values
+            };
+          })
+          .filter(
+            (group): group is { id: string; label: string; values: string[] } => Boolean(group)
+          )
+      : [];
+    const legacyCakeFlavors =
+      customOptionGroups.find((group) => group.id === "cakeFlavor" || group.label.toLowerCase() === "cake flavor")
+        ?.values ?? [];
+    const legacyChocolateColors =
+      customOptionGroups.find(
+        (group) => group.id === "chocolateColor" || group.label.toLowerCase() === "chocolate color"
+      )?.values ?? [];
+    const customOptionsPayload = {
+      hasCustomOptions: values.hasCustomOptions,
+      customOptions: {
+        optionGroups: customOptionGroups,
+        cakeFlavors: legacyCakeFlavors,
+        chocolateColors: legacyChocolateColors
+      }
+    };
     const productPayloadBase = {
       category_id: values.category_id ?? null,
       name: values.name,
@@ -277,7 +351,8 @@ export async function upsertProductAction(input: unknown) {
     };
     const productPayload = {
       ...productPayloadBase,
-      ...nutritionPayload
+      ...nutritionPayload,
+      custom_options: customOptionsPayload
     };
 
     const { data: product, error: productError } = await saveProductRecord(
@@ -333,6 +408,15 @@ export async function upsertProductAction(input: unknown) {
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${product.id}`);
 
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: values.id ? "product_updated" : "product_created",
+      targetType: "product",
+      targetId: product.id,
+      metadata: { slug: product.slug, name: values.name }
+    });
+
     return { success: true, productId: product.id };
   } catch (error) {
     console.error("upsertProductAction failed", error);
@@ -342,7 +426,7 @@ export async function upsertProductAction(input: unknown) {
 
 export async function deleteProductAction(productId: string) {
   try {
-    await requireAdminAccess();
+    const { user, role } = await requireAdminAccess();
     const supabase = createAdminClient() as any;
     const { error } = await supabase.from("products").delete().eq("id", productId);
 
@@ -353,6 +437,237 @@ export async function deleteProductAction(productId: string) {
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath("/admin/products");
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "product_deleted",
+      targetType: "product",
+      targetId: productId,
+      severity: "warning"
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function toggleProductVisibilityAction(productId: string, published: boolean) {
+  try {
+    const { user, role } = await requireAdminAccess();
+    const supabase = createAdminClient() as any;
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id,name,slug")
+      .eq("id", productId)
+      .maybeSingle();
+
+    if (productError || !product) {
+      throw productError ?? new Error("Product not found");
+    }
+
+    const { error } = await supabase
+      .from("products")
+      .update({
+        active: published,
+        status: published ? "active" : "draft"
+      })
+      .eq("id", productId);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/");
+    revalidatePath("/shop");
+    revalidatePath("/menu");
+    revalidatePath("/links");
+    revalidatePath(`/products/${product.slug}`);
+    revalidatePath("/admin/products");
+
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: published ? "product_published" : "product_hidden",
+      targetType: "product",
+      targetId: productId,
+      metadata: { slug: product.slug, name: product.name }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertTreatDesignerProductAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = treatDesignerProductSchema.parse(input);
+    const supabase = createAdminClient() as any;
+    const normalizedSlug = slugify(values.name);
+    const payload = {
+      name: values.name,
+      slug: normalizedSlug,
+      description: `${values.name} custom treat designer product.`,
+      short_description: "Custom treat designer product",
+      base_price: values.base_price,
+      min_quantity: values.min_quantity,
+      image: normalizeString(values.image ?? null),
+      treat_designer_enabled: values.treat_designer_enabled,
+      treat_designer_featured: values.treat_designer_featured,
+      enable_sprinkles: values.enable_sprinkles,
+      enable_logo_upload: values.enable_logo_upload,
+      enable_live_preview: values.enable_live_preview,
+      logo_upload_fee: values.logo_upload_fee,
+      active: true,
+      status: "active",
+      pickup_only: false,
+      delivery_available: true,
+      lead_time_days: 3,
+      custom_options: {
+        hasCustomOptions: true,
+        customOptions: {
+          optionGroups: [],
+          cakeFlavors: [],
+          chocolateColors: []
+        }
+      }
+    };
+
+    const query = values.id
+      ? supabase.from("products").update(payload).eq("id", values.id)
+      : supabase.from("products").insert(payload);
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/treat-designer");
+    revalidatePath("/cake-pop-designer");
+    revalidatePath("/admin/treat-designer");
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertTreatOptionGroupAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = treatOptionGroupSchema.parse(input);
+    const supabase = createAdminClient() as any;
+    const payload = {
+      product_id: values.product_id,
+      name: values.name,
+      required: values.required,
+      active: values.active,
+      sort_order: values.sort_order
+    };
+    const query = values.id
+      ? supabase.from("option_groups").update(payload).eq("id", values.id)
+      : supabase.from("option_groups").insert(payload);
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/treat-designer");
+    revalidatePath("/cake-pop-designer");
+    revalidatePath("/admin/treat-designer");
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertTreatOptionAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = treatOptionSchema.parse(input);
+    const supabase = createAdminClient() as any;
+    const payload = {
+      group_id: values.group_id,
+      name: values.name,
+      price_modifier: values.price_modifier,
+      image: normalizeString(values.image ?? null),
+      color_hex: normalizeString(values.color_hex ?? null),
+      active: values.active,
+      sort_order: values.sort_order
+    };
+    const query = values.id
+      ? supabase.from("options").update(payload).eq("id", values.id)
+      : supabase.from("options").insert(payload);
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/treat-designer");
+    revalidatePath("/cake-pop-designer");
+    revalidatePath("/admin/treat-designer");
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertTreatAddOnAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = treatAddOnSchema.parse(input);
+    const supabase = createAdminClient() as any;
+    const payload = {
+      name: values.name,
+      price: values.price,
+      active: values.active,
+      sort_order: values.sort_order
+    };
+    const query = values.id
+      ? supabase.from("add_ons").update(payload).eq("id", values.id)
+      : supabase.from("add_ons").insert(payload);
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/treat-designer");
+    revalidatePath("/cake-pop-designer");
+    revalidatePath("/admin/treat-designer");
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function upsertTreatSprinkleSetAction(input: unknown) {
+  try {
+    await requireAdminAccess();
+    const values = treatSprinkleSetSchema.parse(input);
+    const supabase = createAdminClient() as any;
+    const payload = {
+      name: values.name,
+      image_url: normalizeString(values.image_url ?? null),
+      color_hex: normalizeString(values.color_hex ?? null),
+      price_modifier: values.price_modifier,
+      active: values.active,
+      sort_order: values.sort_order
+    };
+    const query = values.id
+      ? supabase.from("sprinkle_sets").update(payload).eq("id", values.id)
+      : supabase.from("sprinkle_sets").insert(payload);
+    const { error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/treat-designer");
+    revalidatePath("/cake-pop-designer");
+    revalidatePath("/admin/treat-designer");
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };
@@ -415,8 +730,8 @@ export async function deleteCouponAction(couponId: string) {
 
 export async function updateOrderStatusAction(input: unknown) {
   try {
-    await requireAdminAccess();
-    const values = updateOrderStatusSchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+    const values = updateOrderStatusSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     const orderStatus =
       values.status === "confirmed"
@@ -444,6 +759,55 @@ export async function updateOrderStatusAction(input: unknown) {
 
     revalidatePath("/admin/orders");
     revalidatePath(`/admin/orders/${values.orderId}`);
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "order_status_updated",
+      targetType: "order",
+      targetId: values.orderId,
+      metadata: { status: values.status }
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: getErrorMessage(error) };
+  }
+}
+
+export async function deleteOrderAction(orderId: string) {
+  try {
+    await requireAdminAccess();
+
+    if (!orderId) {
+      return { error: "Order ID is required." };
+    }
+
+    const supabase = createAdminClient() as any;
+    const childTables = [
+      "order_notifications",
+      "order_status_history",
+      "order_messages",
+      "order_items"
+    ];
+
+    for (const table of childTables) {
+      const { error } = await supabase.from(table).delete().eq("order_id", orderId);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    const { error } = await supabase.from("orders").delete().eq("id", orderId);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/orders");
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/account");
+    revalidatePath("/order-status");
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };
@@ -586,10 +950,25 @@ export async function upsertAboutPageContentAction(input: unknown) {
           image_url: image.image_url.trim(),
           alt_text: image.alt_text.trim()
         })),
-      highlight_cards: values.highlight_cards.map((card) => ({
-        title: card.title.trim(),
-        text: card.text.trim()
-      }))
+      highlight_cards: [
+        ...values.highlight_cards.map((card) => ({
+          title: card.title.trim(),
+          text: card.text.trim()
+        })),
+        ...values.credential_items
+          .filter((item) => item.title.trim() && item.issuer.trim())
+          .map((item) => ({
+            kind: "credential",
+            title: item.title.trim(),
+            credential_type: item.credential_type.trim(),
+            issuer: item.issuer.trim(),
+            issued_at: normalizeString(item.issued_at),
+            description: normalizeString(item.description),
+            document_url: normalizeString(item.document_url),
+            button_label: normalizeString(item.button_label) ?? "View credential",
+            visible: item.visible
+          }))
+      ]
     };
 
     const query = existing?.id
@@ -704,6 +1083,13 @@ export async function upsertTestimonialAction(input: unknown) {
 export async function deleteTestimonialAction(testimonialId: string) {
   try {
     await requireAdminAccess();
+
+    if (!isUuid(testimonialId)) {
+      revalidatePath("/reviews");
+      revalidatePath("/admin/testimonials");
+      return { success: true };
+    }
+
     const supabase = createAdminClient() as any;
     const { error } = await supabase
       .from("testimonials")
@@ -724,8 +1110,13 @@ export async function deleteTestimonialAction(testimonialId: string) {
 
 export async function upsertSiteSettingsAction(input: unknown) {
   try {
-    await requireAdminAccess();
-    const values = siteSettingsSchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+
+    if (role !== "admin") {
+      return { error: "Only admins can update site settings." };
+    }
+
+    const values = siteSettingsSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     const { data: existing } = (await supabase
       .from("site_settings")
@@ -733,7 +1124,11 @@ export async function upsertSiteSettingsAction(input: unknown) {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()) as { data: Pick<SiteSettingsRow, "id"> | null };
-    const { payment_settings: paymentSettings, ...baseValues } = values;
+    const {
+      payment_settings: paymentSettings,
+      feature_settings: featureSettings,
+      ...baseValues
+    } = values;
 
     const legacyPayload = {
       ...baseValues,
@@ -746,9 +1141,18 @@ export async function upsertSiteSettingsAction(input: unknown) {
       address: normalizeString(values.address ?? null),
       pickup_instructions: normalizeString(values.pickup_instructions ?? null)
     };
+    const paymentSettingsWithFeatures = {
+      ...paymentSettings,
+      _feature_settings: featureSettings
+    };
     const payload = {
       ...legacyPayload,
-      payment_settings: paymentSettings
+      payment_settings: paymentSettingsWithFeatures,
+      feature_settings: featureSettings
+    };
+    const paymentOnlyPayload = {
+      ...legacyPayload,
+      payment_settings: paymentSettingsWithFeatures
     };
 
     const runQuery = (queryPayload: Record<string, unknown>) =>
@@ -758,13 +1162,16 @@ export async function upsertSiteSettingsAction(input: unknown) {
 
     let { error } = await runQuery(payload);
 
-    if (
-      error?.code === "PGRST204" &&
-      typeof error.message === "string" &&
-      error.message.includes("'payment_settings'")
-    ) {
-      const legacyResult = await runQuery(legacyPayload);
-      error = legacyResult.error;
+    if (error?.code === "PGRST204" && typeof error.message === "string") {
+      if (error.message.includes("'feature_settings'")) {
+        const paymentOnlyResult = await runQuery(paymentOnlyPayload);
+        error = paymentOnlyResult.error;
+      }
+
+      if (error?.code === "PGRST204" && error.message.includes("'payment_settings'")) {
+        const legacyResult = await runQuery(legacyPayload);
+        error = legacyResult.error;
+      }
     }
 
     if (error) {
@@ -774,7 +1181,18 @@ export async function upsertSiteSettingsAction(input: unknown) {
     revalidatePath("/");
     revalidatePath("/contact");
     revalidatePath("/checkout");
+    revalidatePath("/menu");
+    revalidatePath("/links");
+    revalidatePath("/treat-designer");
     revalidatePath("/admin/settings");
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "site_settings_updated",
+      targetType: "site_settings",
+      targetId: existing?.id ?? null,
+      severity: "warning"
+    });
     return { success: true };
   } catch (error) {
     return { error: getErrorMessage(error) };

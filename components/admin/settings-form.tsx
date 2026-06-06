@@ -8,7 +8,11 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { upsertSiteSettingsAction } from "@/actions/admin";
-import { DEFAULT_PAYMENT_SETTINGS } from "@/lib/payments";
+import {
+  DEFAULT_FEATURE_SETTINGS,
+  DEFAULT_FULFILLMENT_OPTIONS,
+  DEFAULT_PAYMENT_SETTINGS
+} from "@/lib/payments";
 import type { SiteSettingsModel } from "@/lib/types/app";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,10 +52,13 @@ const settingsFormSchema = z.object({
   delivery_zones: z
     .array(
       z.object({
-        value: z.string().max(120, "Keep each zone under 120 characters").optional()
+        id: z.string().max(140).optional(),
+        type: z.enum(["pickup", "delivery"]),
+        label: z.string().max(120, "Keep each option under 120 characters").optional(),
+        fee: z.union([z.coerce.number().min(0, "Must be 0 or greater"), z.literal("")]).optional()
       })
     )
-    .max(20, "You can add up to 20 delivery zones"),
+    .max(40, "You can add up to 40 fulfillment options"),
   pickup_instructions: z.string().max(500, "Keep pickup instructions under 500 characters").optional(),
   free_delivery_threshold: z
     .union([z.coerce.number().min(0, "Must be 0 or greater"), z.literal("")])
@@ -108,6 +115,13 @@ const settingsFormSchema = z.object({
       instructions: z.string().max(300, "Keep instructions under 300 characters").optional()
     }),
     manual_payment_note: z.string().max(300, "Keep the note under 300 characters").optional()
+  }),
+  feature_settings: z.object({
+    treat_designer_enabled: z.boolean(),
+    treat_designer_disabled_message: z
+      .string()
+      .max(300, "Keep the paused message under 300 characters")
+      .optional()
   })
 });
 
@@ -131,15 +145,26 @@ function getBusinessHoursDefaults(settings: SiteSettingsModel) {
 }
 
 function getDeliveryZoneDefaults(settings: SiteSettingsModel) {
-  if (!Array.isArray(settings.delivery_zones)) {
-    return [{ value: "" }];
-  }
+  const zones = settings.delivery_zones.map((option) => ({
+    id: option.id,
+    type: option.type,
+    label: option.label,
+    fee: option.fee
+  }));
 
-  const zones = settings.delivery_zones
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((value) => ({ value }));
+  return zones.length > 0
+    ? zones
+    : DEFAULT_FULFILLMENT_OPTIONS.map((option) => ({ ...option }));
+}
 
-  return zones.length > 0 ? zones : [{ value: "" }];
+function makeFulfillmentOptionId(type: "pickup" | "delivery", label: string, index: number) {
+  const slug = label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `${type}-${slug || index}`;
 }
 
 function getDefaultValues(settings: SiteSettingsModel): SettingsFormValues {
@@ -217,6 +242,15 @@ function getDefaultValues(settings: SiteSettingsModel): SettingsFormValues {
         settings.payment_settings?.manual_payment_note ??
         DEFAULT_PAYMENT_SETTINGS.manual_payment_note ??
         ""
+    },
+    feature_settings: {
+      treat_designer_enabled:
+        settings.feature_settings?.treat_designer_enabled ??
+        DEFAULT_FEATURE_SETTINGS.treat_designer_enabled,
+      treat_designer_disabled_message:
+        settings.feature_settings?.treat_designer_disabled_message ??
+        DEFAULT_FEATURE_SETTINGS.treat_designer_disabled_message ??
+        ""
     }
   };
 }
@@ -252,7 +286,21 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
         .filter(([, hours]) => hours.length > 0)
     );
     const deliveryZonesPayload = values.delivery_zones
-      .map((zone) => zone.value?.trim() ?? "")
+      .map((zone, index) => {
+        const label = zone.label?.trim() ?? "";
+        const fee = Number(zone.fee ?? 0);
+
+        if (!label) {
+          return null;
+        }
+
+        return {
+          id: zone.id?.trim() || makeFulfillmentOptionId(zone.type, label, index),
+          type: zone.type,
+          label,
+          fee: Number.isFinite(fee) && fee > 0 ? Math.round(fee * 100) / 100 : 0
+        };
+      })
       .filter(Boolean);
 
     startTransition(async () => {
@@ -271,6 +319,12 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
         free_delivery_threshold:
           values.free_delivery_threshold === "" ? null : values.free_delivery_threshold,
         currency: values.currency.trim().toUpperCase(),
+        feature_settings: {
+          treat_designer_enabled: values.feature_settings.treat_designer_enabled,
+          treat_designer_disabled_message: cleanOptionalText(
+            values.feature_settings.treat_designer_disabled_message
+          )
+        },
         payment_settings: {
           stripe: {
             enabled: values.payment_settings.stripe.enabled,
@@ -343,9 +397,17 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
             <FieldError message={form.formState.errors.support_email?.message} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="support_phone">Support phone</Label>
-            <Input id="support_phone" {...form.register("support_phone")} />
+            <Label htmlFor="support_phone">WhatsApp Business / support phone</Label>
+            <Input
+              id="support_phone"
+              type="tel"
+              placeholder="(787) 210-9422"
+              {...form.register("support_phone")}
+            />
             <FieldError message={form.formState.errors.support_phone?.message} />
+            <p className="text-xs leading-5 text-muted-foreground">
+              This number powers every WhatsApp button on the public website.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="instagram_url">Instagram URL</Label>
@@ -366,6 +428,44 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
             <Label htmlFor="currency">Currency</Label>
             <Input id="currency" maxLength={3} {...form.register("currency")} />
             <FieldError message={form.formState.errors.currency?.message} />
+          </div>
+          <div className="rounded-[28px] border border-bakery-gold/20 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(255,244,247,0.74))] p-5 md:col-span-2">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <Label className="text-base font-semibold text-foreground">
+                  Treat Designer availability
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Turn this off while the designer is being fixed. Public pages will send customers to custom orders instead.
+                </p>
+              </div>
+              <label className="flex items-center gap-3 rounded-full border border-white/80 bg-white/80 px-4 py-3 text-sm font-semibold text-bakery-espresso shadow-sm">
+                <Checkbox
+                  checked={Boolean(form.watch("feature_settings.treat_designer_enabled"))}
+                  onCheckedChange={(checked) =>
+                    form.setValue("feature_settings.treat_designer_enabled", Boolean(checked), {
+                      shouldDirty: true
+                    })
+                  }
+                  aria-label="Treat Designer enabled"
+                />
+                Enabled
+              </label>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="feature_settings.treat_designer_disabled_message">
+                Message customers see when paused
+              </Label>
+              <Textarea
+                id="feature_settings.treat_designer_disabled_message"
+                {...form.register("feature_settings.treat_designer_disabled_message")}
+              />
+              <FieldError
+                message={
+                  form.formState.errors.feature_settings?.treat_designer_disabled_message?.message
+                }
+              />
+            </div>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="address">Address</Label>
@@ -408,29 +508,83 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
           <div className="rounded-[28px] border border-border/70 bg-white/70 p-5 md:col-span-2">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
-                <Label className="text-base font-semibold text-foreground">Delivery zones</Label>
+                <Label className="text-base font-semibold text-foreground">Pickup and delivery options</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add the areas you deliver to, one per line.
+                  Add each pickup or delivery area with the fee customers should pay.
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => deliveryZones.append({ value: "" })}
-                disabled={deliveryZones.fields.length >= 20}
-              >
-                <Plus className="h-4 w-4" />
-                Add zone
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    deliveryZones.append({
+                      id: "",
+                      type: "pickup",
+                      label: "",
+                      fee: 0
+                    })
+                  }
+                  disabled={deliveryZones.fields.length >= 40}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add pickup
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    deliveryZones.append({
+                      id: "",
+                      type: "delivery",
+                      label: "",
+                      fee: 0
+                    })
+                  }
+                  disabled={deliveryZones.fields.length >= 40}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add delivery
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               {deliveryZones.fields.map((field, index) => (
                 <div key={field.id} className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Input
-                      placeholder="Houston Heights, Katy, Sugar Land..."
-                      {...form.register(`delivery_zones.${index}.value`)}
-                    />
+                  <div className="grid gap-3 rounded-[20px] border border-border/70 bg-secondary/30 p-4 md:grid-cols-[140px_1fr_150px_auto]">
+                    <input type="hidden" {...form.register(`delivery_zones.${index}.id`)} />
+                    <select
+                      className="flex h-12 w-full rounded-2xl border border-border bg-white/80 px-4 text-sm"
+                      {...form.register(`delivery_zones.${index}.type`)}
+                    >
+                      <option value="pickup">Pickup</option>
+                      <option value="delivery">Delivery</option>
+                    </select>
+                    <div>
+                      <Input
+                        placeholder={
+                          form.watch(`delivery_zones.${index}.type`) === "pickup"
+                            ? "Free Pick Up HEB Copperas Cove"
+                            : "Belton delivery"
+                        }
+                        {...form.register(`delivery_zones.${index}.label`)}
+                      />
+                      <FieldError
+                        message={form.formState.errors.delivery_zones?.[index]?.label?.message}
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...form.register(`delivery_zones.${index}.fee`)}
+                      />
+                      <FieldError
+                        message={form.formState.errors.delivery_zones?.[index]?.fee?.message}
+                      />
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
@@ -438,15 +592,12 @@ export function SettingsForm({ settings }: { settings: SiteSettingsModel }) {
                       onClick={() =>
                         deliveryZones.fields.length > 1
                           ? deliveryZones.remove(index)
-                          : form.setValue("delivery_zones.0.value", "")
+                          : form.setValue("delivery_zones.0.label", "")
                       }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <FieldError
-                    message={form.formState.errors.delivery_zones?.[index]?.value?.message}
-                  />
                 </div>
               ))}
             </div>

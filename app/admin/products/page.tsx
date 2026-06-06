@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { DeleteProductButton } from "@/components/admin/delete-product-button";
+import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,7 +42,18 @@ export default async function AdminProductsPage() {
                 <TableCell>{product.name}</TableCell>
                 <TableCell>{product.categories?.name ?? "Uncategorized"}</TableCell>
                 <TableCell>{formatCurrency(product.base_price)}</TableCell>
-                <TableCell>{product.status}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ProductVisibilityToggle
+                      productId={product.id}
+                      productName={product.name}
+                      published={product.active && product.status === "active"}
+                    />
+                    {product.status === "archived" ? (
+                      <Badge variant="outline">Archived</Badge>
+                    ) : null}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button asChild variant="outline" size="sm">

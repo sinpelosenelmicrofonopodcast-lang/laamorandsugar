@@ -13,7 +13,7 @@ export async function DELETE(
 ) {
   try {
     if (!hasSupabaseEnv()) {
-      return NextResponse.json({ error: "Supabase is not configured." }, { status: 400 });
+      return NextResponse.json({ error: "Media is temporarily unavailable." }, { status: 400 });
     }
 
     const role = await getCurrentUserRole();

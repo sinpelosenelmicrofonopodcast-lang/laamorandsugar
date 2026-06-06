@@ -18,7 +18,7 @@ export default async function ReviewsPage() {
       <SectionHeading
         eyebrow="Reviews"
         title="Client love letters, one dessert table at a time"
-        description="These testimonials are managed from the admin dashboard and can be featured on the homepage or review page."
+        description="Sweet notes from customers who trusted us with birthdays, gifts, events, and custom dessert moments."
       />
       <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {testimonials.map((testimonial: TestimonialRow) => (

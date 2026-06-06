@@ -22,6 +22,7 @@ import {
 import { getOrderDepositSummary, getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import type { OrderWithItems } from "@/lib/types/app";
 import { formatCurrency } from "@/lib/utils";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 export function CustomerOrderStatusView({
   order,
@@ -34,6 +35,7 @@ export function CustomerOrderStatusView({
   const [messageBody, setMessageBody] = useState("");
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const orderStatus = deriveCustomerOrderStatus({
     order_status: order.order_status,
     status: order.status,
@@ -60,6 +62,7 @@ export function CustomerOrderStatusView({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("purpose", "order-message");
+      formData.append("turnstileToken", turnstileToken);
       const response = await fetch("/api/media/upload", {
         method: "POST",
         body: formData
@@ -250,7 +253,7 @@ export function CustomerOrderStatusView({
                   <Input
                     id="attachment"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       if (file) {
@@ -278,7 +281,8 @@ export function CustomerOrderStatusView({
                       const result = await sendCustomerOrderMessageAction({
                         order_token: orderToken,
                         message_body: messageBody.trim(),
-                        attachment_url: attachmentUrl || null
+                        attachment_url: attachmentUrl || null,
+                        turnstileToken
                       });
 
                       if (result.error) {
@@ -293,6 +297,7 @@ export function CustomerOrderStatusView({
                 >
                   Send message
                 </Button>
+                <TurnstileWidget action="customer_message" onVerify={setTurnstileToken} />
               </div>
             </CardContent>
           </Card>

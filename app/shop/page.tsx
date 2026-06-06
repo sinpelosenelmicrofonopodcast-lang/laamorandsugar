@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Route } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -25,6 +26,7 @@ type ShopPageProps = {
   searchParams: Promise<{
     q?: string;
     category?: string;
+    seasonal?: string;
   }>;
 };
 
@@ -82,7 +84,7 @@ function CategoryShowcase({
         return (
           <Link
             key={category.id}
-            href={category.slug ? `/shop?category=${category.slug}` : "/shop"}
+            href={(category.slug ? `/collections/${category.slug.toLowerCase()}` : "/shop") as Route}
             className="group"
           >
             <Card className="fancy-border overflow-hidden border-white/70 bg-white/84 shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(120,85,63,0.13)]">
@@ -142,8 +144,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     const matchesCategory = params.category
       ? product.categories?.slug === params.category
       : true;
+    const matchesSeasonal = params.seasonal === "true" ? product.seasonal : true;
 
-    return matchesQuery && matchesCategory;
+    return matchesQuery && matchesCategory && matchesSeasonal;
   });
   const optionalFeaturedProducts = filteredProducts.filter((product) =>
     Boolean((product as typeof product & { is_featured?: unknown }).is_featured)

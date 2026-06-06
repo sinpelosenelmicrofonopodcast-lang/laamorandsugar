@@ -42,14 +42,14 @@ export const DEFAULT_HOMEPAGE_CONTENT = {
   banner_text: "Custom sweets made with love in Killeen, TX",
   banner_cta_label: "Start a custom order",
   banner_cta_href: "/custom-orders",
-  seo_title: "L&A Amor & Sugar | Custom Desserts & Sweet Treats in Killeen, TX",
+  seo_title: "Gifts that make people say WOW before they even taste them. | L&A Amor & Sugar",
   seo_description:
-    "Custom desserts, chocolate-covered strawberries, cake pops, dessert boxes, and seasonal treats made with love in Killeen, TX. Order online or request a custom treat box.",
-  hero_eyebrow: "Custom sweets made with love in Killeen, TX",
-  hero_title: "Luxury Custom Desserts for Every Sweet Moment",
+    "Luxury chocolate-covered strawberries, dessert boxes, and edible arrangements made to impress every time. Pickup and delivery available in Killeen, TX.",
+  hero_eyebrow: "Luxury sweet gifting in Killeen, TX",
+  hero_title: "Gifts that make people say WOW before they even taste them.",
   hero_description:
-    "From chocolate-covered strawberries and cake pops to custom dessert boxes, every treat is made fresh, styled beautifully, and designed to make your moment feel special.",
-  hero_primary_cta_label: "Shop treats",
+    "Luxury chocolate-covered strawberries, dessert boxes, and edible arrangements made to impress every time.",
+  hero_primary_cta_label: "Order Now",
   hero_primary_cta_href: "/shop",
   hero_secondary_cta_label: "Start Custom Order",
   hero_secondary_cta_href: "/custom-orders",
@@ -59,17 +59,17 @@ export const DEFAULT_HOMEPAGE_CONTENT = {
   hero_mobile_image_alt: "Luxury custom desserts by L&A Amor & Sugar",
   hero_background_image_url: null,
   hero_background_image_alt: "Soft luxury dessert background",
-  featured_heading: "Best Sellers",
+  featured_heading: "Everyone’s Ordering These Right Now",
   featured_description:
-    "Our most-loved treats, perfect for gifts, events, or treating yourself.",
+    "Our most wanted treats — the ones that get reactions every single time.",
   process_heading: "How It Works",
   process_description:
     "A simple, sweet process from choosing your treats to enjoying the final order.",
   testimonials_heading: "Sweet Words From Our Customers",
   testimonials_description:
     "See why customers come back for gift-ready treats, custom desserts, and sweet moments made beautifully.",
-  cta_heading: "Ready to Create Something Sweet?",
+  cta_heading: "Don’t wait until it’s too late.",
   cta_description:
-    "Whether it’s a gift, a party, or a custom dessert box, we’re ready to make it beautiful and delicious.",
+    "Order now and secure your spot.",
   content_json: {}
 } as const;

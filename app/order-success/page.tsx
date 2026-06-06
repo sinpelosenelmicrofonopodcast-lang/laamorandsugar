@@ -97,7 +97,7 @@ export default async function OrderSuccessPage({
                     {formatCurrency(paymentSummary.remainingBalance)}
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    The remaining 50% is due before pickup or delivery unless you collect it another way in admin.
+                    The remaining 50% is due before pickup or delivery. We will confirm the next payment step with you.
                   </p>
                 </div>
               ) : null}

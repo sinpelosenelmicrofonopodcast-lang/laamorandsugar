@@ -16,6 +16,7 @@ import type { z } from "zod";
 
 import { upsertHomepageContentAction } from "@/actions/admin";
 import {
+  DEFAULT_HOMEPAGE_HOME_CONTENT,
   DEFAULT_HOMEPAGE_SECTIONS_ORDER,
   HOMEPAGE_ICON_OPTIONS
 } from "@/lib/homepage";
@@ -98,6 +99,26 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   const [item] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, item);
   return next;
+}
+
+function cloneDefaultHomeContent() {
+  return {
+    ...DEFAULT_HOMEPAGE_HOME_CONTENT,
+    hero: {
+      ...DEFAULT_HOMEPAGE_HOME_CONTENT.hero,
+      chips: [...DEFAULT_HOMEPAGE_HOME_CONTENT.hero.chips]
+    },
+    best_sellers: {
+      ...DEFAULT_HOMEPAGE_HOME_CONTENT.best_sellers
+    },
+    occasions: [...DEFAULT_HOMEPAGE_HOME_CONTENT.occasions],
+    final_cta: {
+      ...DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta
+    },
+    custom_order: {
+      ...DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order
+    }
+  };
 }
 
 async function uploadImage(file: File) {
@@ -329,7 +350,7 @@ export function HomepageForm({
   const seasonalSpecialIds = form.watch("content_json.seasonal.special_ids");
   const selectedTestimonialIds = form.watch("content_json.testimonials.selected_ids");
   const sectionOrder = form.watch("content_json.sections_order");
-  const customOrderBullets = form.watch("content_json.custom_orders.bullets");
+  const homeContent = form.watch("content_json.home_content");
 
   const toggleSelection = (path: SelectionPath, id: string) => {
     const current = (form.getValues(path) ?? []) as string[];
@@ -393,16 +414,40 @@ export function HomepageForm({
         try {
           const payload: HomepageValues = {
             ...values,
+            hero_eyebrow: values.content_json.home_content.hero.eyebrow,
+            hero_title: values.content_json.home_content.hero.headline,
+            hero_description: values.content_json.home_content.hero.subheadline,
+            hero_primary_cta_label: values.content_json.home_content.hero.cta_primary,
+            hero_secondary_cta_label: values.content_json.home_content.hero.cta_secondary,
+            featured_heading: values.content_json.home_content.best_sellers.title,
+            featured_description: values.content_json.home_content.best_sellers.subtitle,
+            cta_heading: values.content_json.home_content.final_cta.title,
+            cta_description: values.content_json.home_content.final_cta.text,
             content_json: {
               ...values.content_json,
+              custom_orders: {
+                ...values.content_json.custom_orders,
+                title: values.content_json.home_content.custom_order.title,
+                description: values.content_json.home_content.custom_order.description,
+                bullets: values.content_json.home_content.occasions
+              },
               how_it_works: {
                 ...values.content_json.how_it_works,
                 title: values.process_heading ?? values.content_json.how_it_works.title
               },
+              trust: {
+                ...values.content_json.trust,
+                title:
+                  values.content_json.home_content.about
+                    .split(/\n+/)
+                    .map((line) => line.trim())
+                    .filter(Boolean)[0] ?? values.content_json.trust.title,
+                description: values.content_json.home_content.about
+              },
               final_cta: {
                 ...values.content_json.final_cta,
-                title: values.cta_heading ?? values.content_json.final_cta.title,
-                text: values.cta_description ?? values.content_json.final_cta.text
+                title: values.content_json.home_content.final_cta.title,
+                text: values.content_json.home_content.final_cta.text
               }
             }
           };
@@ -471,6 +516,43 @@ export function HomepageForm({
       </SectionCard>
 
       <SectionCard
+        title="Conversion Copy System"
+        description="This is the centralized editable copy used across the homepage. Reset it anytime without redeploying."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              form.setValue("content_json.home_content", cloneDefaultHomeContent(), {
+                shouldDirty: true,
+                shouldValidate: true
+              })
+            }
+          >
+            Reset default sales copy
+          </Button>
+        </div>
+        <div className="rounded-[1.5rem] border border-border bg-white/70 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+            Live copy preview
+          </p>
+          <h3 className="mt-3 font-serif text-3xl text-foreground">{homeContent.hero.headline}</h3>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">{homeContent.hero.subheadline}</p>
+          <p className="mt-3 text-sm font-semibold text-bakery-rose">{homeContent.hero.urgency}</p>
+          <p className="mt-4 text-sm italic text-foreground/80">{homeContent.hero.micro_copy}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full border border-border px-3 py-2 text-xs font-medium">
+              {homeContent.hero.cta_primary}
+            </span>
+            <span className="rounded-full border border-border px-3 py-2 text-xs font-medium">
+              {homeContent.hero.cta_secondary}
+            </span>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title="Section Order"
         description="Drag-free ordering for the main homepage sections. Hero stays at the top."
       >
@@ -523,19 +605,27 @@ export function HomepageForm({
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="hero_eyebrow">Eyebrow</Label>
-            <Input id="hero_eyebrow" {...form.register("hero_eyebrow")} />
+            <Input id="hero_eyebrow" {...form.register("content_json.home_content.hero.eyebrow")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="hero_title">Headline</Label>
-            <Input id="hero_title" {...form.register("hero_title")} />
+            <Input id="hero_title" {...form.register("content_json.home_content.hero.headline")} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="hero_description">Subtitle</Label>
-            <Textarea id="hero_description" {...form.register("hero_description")} />
+            <Textarea id="hero_description" {...form.register("content_json.home_content.hero.subheadline")} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Urgency line</Label>
+            <Input {...form.register("content_json.home_content.hero.urgency")} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Micro copy</Label>
+            <Input {...form.register("content_json.home_content.hero.micro_copy")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="hero_primary_cta_label">Primary button text</Label>
-            <Input id="hero_primary_cta_label" {...form.register("hero_primary_cta_label")} />
+            <Input id="hero_primary_cta_label" {...form.register("content_json.home_content.hero.cta_primary")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="hero_primary_cta_href">Primary button link</Label>
@@ -545,12 +635,78 @@ export function HomepageForm({
             <Label htmlFor="hero_secondary_cta_label">Secondary button text</Label>
             <Input
               id="hero_secondary_cta_label"
-              {...form.register("hero_secondary_cta_label")}
+              {...form.register("content_json.home_content.hero.cta_secondary")}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="hero_secondary_cta_href">Secondary button link</Label>
             <Input id="hero_secondary_cta_href" {...form.register("hero_secondary_cta_href")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Badge text</Label>
+            <Input {...form.register("content_json.home_content.hero.badge")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Image badge text</Label>
+            <Input {...form.register("content_json.home_content.hero.image_badge")} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Image card headline</Label>
+            <Textarea {...form.register("content_json.home_content.hero.image_title")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Reserve card title</Label>
+            <Input {...form.register("content_json.home_content.hero.reserve_card_title")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Delivery card title</Label>
+            <Input {...form.register("content_json.home_content.hero.delivery_card_title")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Reserve card text</Label>
+            <Textarea {...form.register("content_json.home_content.hero.reserve_card_text")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Delivery card text</Label>
+            <Textarea {...form.register("content_json.home_content.hero.delivery_card_text")} />
+          </div>
+          <div className="space-y-3 md:col-span-2">
+            <div className="flex items-center justify-between">
+              <Label>Hero chips</Label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  form.setValue(
+                    "content_json.home_content.hero.chips",
+                    [...homeContent.hero.chips, ""],
+                    { shouldDirty: true, shouldValidate: true }
+                  )
+                }
+              >
+                <Plus className="h-4 w-4" />
+                Add chip
+              </Button>
+            </div>
+            {homeContent.hero.chips.map((chip, index) => (
+              <div key={`${chip}-${index}`} className="flex gap-3">
+                <Input {...form.register(`content_json.home_content.hero.chips.${index}`)} />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    form.setValue(
+                      "content_json.home_content.hero.chips",
+                      homeContent.hero.chips.filter((_, chipIndex) => chipIndex !== index),
+                      { shouldDirty: true, shouldValidate: true }
+                    )
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
           <div className="md:col-span-2 grid gap-4 lg:grid-cols-3">
             <ImageField
@@ -594,11 +750,11 @@ export function HomepageForm({
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="featured_heading">Section title</Label>
-            <Input id="featured_heading" {...form.register("featured_heading")} />
+            <Input id="featured_heading" {...form.register("content_json.home_content.best_sellers.title")} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="featured_description">Section subtitle</Label>
-            <Textarea id="featured_description" {...form.register("featured_description")} />
+            <Textarea id="featured_description" {...form.register("content_json.home_content.best_sellers.subtitle")} />
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -691,7 +847,7 @@ export function HomepageForm({
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input {...form.register("content_json.custom_orders.title")} />
+            <Input {...form.register("content_json.home_content.custom_order.title")} />
           </div>
           <div className="space-y-2">
             <Label>Button text</Label>
@@ -699,7 +855,7 @@ export function HomepageForm({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Description</Label>
-            <Textarea {...form.register("content_json.custom_orders.description")} />
+            <Textarea {...form.register("content_json.home_content.custom_order.description")} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Button link</Label>
@@ -716,33 +872,37 @@ export function HomepageForm({
           </div>
           <div className="space-y-3 md:col-span-2">
             <div className="flex items-center justify-between">
-              <Label>Bullet points</Label>
+              <Label>Occasions</Label>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() =>
                   form.setValue(
-                    "content_json.custom_orders.bullets",
-                    [...customOrderBullets, ""],
+                    "content_json.home_content.occasions",
+                    [...homeContent.occasions, ""],
                     { shouldDirty: true, shouldValidate: true }
                   )
                 }
               >
                 <Plus className="h-4 w-4" />
-                Add bullet
+                Add occasion
               </Button>
             </div>
-            {customOrderBullets.map((bullet, index) => (
+            <div className="space-y-2">
+              <Label>Occasions heading</Label>
+              <Input {...form.register("content_json.home_content.occasions_heading")} />
+            </div>
+            {homeContent.occasions.map((bullet, index) => (
               <div key={`${bullet}-${index}`} className="flex gap-3">
-                <Input {...form.register(`content_json.custom_orders.bullets.${index}`)} />
+                <Input {...form.register(`content_json.home_content.occasions.${index}`)} />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onClick={() =>
                     form.setValue(
-                      "content_json.custom_orders.bullets",
-                      customOrderBullets.filter((_, bulletIndex) => bulletIndex !== index),
+                      "content_json.home_content.occasions",
+                      homeContent.occasions.filter((_, bulletIndex) => bulletIndex !== index),
                       { shouldDirty: true, shouldValidate: true }
                     )
                   }
@@ -1001,7 +1161,7 @@ export function HomepageForm({
         </div>
       </SectionCard>
 
-      <SectionCard title="Brand Promise" description="Editable promise cards that reinforce trust and presentation.">
+      <SectionCard title="Brand Message" description="Control the emotional brand copy, delivery messaging, urgency, and the supporting trust cards.">
         <div className="flex items-center gap-3">
           <Checkbox
             checked={form.watch("content_json.trust.is_enabled")}
@@ -1014,13 +1174,17 @@ export function HomepageForm({
           <span className="text-sm font-medium">Show Brand Promise section</span>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Section title</Label>
-            <Input {...form.register("content_json.trust.title")} />
-          </div>
           <div className="space-y-2 md:col-span-2">
-            <Label>Section description</Label>
-            <Textarea {...form.register("content_json.trust.description")} />
+            <Label>About / brand message</Label>
+            <Textarea rows={8} {...form.register("content_json.home_content.about")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Delivery section copy</Label>
+            <Textarea rows={6} {...form.register("content_json.home_content.delivery")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Urgency section copy</Label>
+            <Textarea rows={6} {...form.register("content_json.home_content.urgency_section")} />
           </div>
         </div>
         <div className="space-y-4">
@@ -1260,7 +1424,7 @@ export function HomepageForm({
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="cta_heading">Section title</Label>
-            <Input id="cta_heading" {...form.register("cta_heading")} />
+            <Input id="cta_heading" {...form.register("content_json.home_content.final_cta.title")} />
           </div>
           <div className="space-y-2">
             <Label>Button text</Label>
@@ -1268,7 +1432,7 @@ export function HomepageForm({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="cta_description">Section text</Label>
-            <Textarea id="cta_description" {...form.register("cta_description")} />
+            <Textarea id="cta_description" {...form.register("content_json.home_content.final_cta.text")} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Button link</Label>

@@ -4,8 +4,10 @@ export const CUSTOMER_ORDER_STATUSES = [
   "payment_pending",
   "paid",
   "in_progress",
+  "decorating",
   "ready_for_pickup",
   "out_for_delivery",
+  "delivered",
   "completed",
   "cancelled"
 ] as const;
@@ -20,9 +22,11 @@ export const CUSTOMER_ORDER_STATUS_LABELS: Record<CustomerOrderStatus, string> =
   confirmed: "Confirmed",
   payment_pending: "Payment Pending",
   paid: "Paid",
-  in_progress: "In Progress",
+  in_progress: "In Preparation",
+  decorating: "Decorating",
   ready_for_pickup: "Ready for Pickup",
   out_for_delivery: "Out for Delivery",
+  delivered: "Delivered",
   completed: "Completed",
   cancelled: "Cancelled"
 };
@@ -32,9 +36,11 @@ export const CUSTOMER_ORDER_STATUS_MESSAGES: Record<CustomerOrderStatus, string>
   confirmed: "Your order has been confirmed.",
   payment_pending: "We’re waiting for payment confirmation before we begin.",
   paid: "Your payment has been received.",
-  in_progress: "We’re preparing your sweet treats.",
+  in_progress: "We’re making your treats fresh right now.",
+  decorating: "We’re adding the finishing details to your sweet gift.",
   ready_for_pickup: "Your order is ready for pickup.",
   out_for_delivery: "Your order is on the way.",
+  delivered: "Your order has been delivered. We hope it made the moment sweeter.",
   completed: "Your order has been completed. Thank you for choosing L&A Amor & Sugar.",
   cancelled: "This order has been cancelled."
 };
@@ -50,7 +56,7 @@ export const ORDER_PROGRESS_STEPS = [
   { key: "received", label: "Order Received" },
   { key: "confirmed", label: "Confirmed" },
   { key: "preparing", label: "Preparing" },
-  { key: "handoff", label: "Ready / Out for Delivery" },
+  { key: "handoff", label: "Ready / Delivery" },
   { key: "completed", label: "Completed" }
 ] as const;
 
@@ -85,10 +91,12 @@ export function mapCustomerOrderStatusToLegacyStatus(
     case "confirmed":
       return "confirmed";
     case "in_progress":
+    case "decorating":
       return "in_progress";
     case "ready_for_pickup":
     case "out_for_delivery":
       return "ready";
+    case "delivered":
     case "completed":
       return "delivered";
     case "cancelled":
@@ -112,7 +120,7 @@ export function deriveCustomerOrderStatus(input: {
   }
 
   if (input.status === "delivered") {
-    return "completed";
+    return "delivered";
   }
 
   if (input.status === "ready") {
@@ -143,10 +151,12 @@ export function getOrderProgressStepIndex(status: CustomerOrderStatus) {
     case "paid":
       return 1;
     case "in_progress":
+    case "decorating":
       return 2;
     case "ready_for_pickup":
     case "out_for_delivery":
       return 3;
+    case "delivered":
     case "completed":
       return 4;
     case "cancelled":

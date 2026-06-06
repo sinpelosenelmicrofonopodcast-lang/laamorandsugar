@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 
+import { DeleteOrderButton } from "@/components/admin/delete-order-button";
 import { OrderCommunicationPanel } from "@/components/admin/order-communication-panel";
 import { StatusBadge } from "@/components/site/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,18 @@ import { formatCurrency } from "@/lib/utils";
 type AdminOrderDetailPageProps = {
   params: Promise<{ id: string }>;
 };
+
+function getItemAddons(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter(
+        (addon): addon is { name: string; price?: number } =>
+          Boolean(addon) &&
+          typeof addon === "object" &&
+          "name" in addon &&
+          typeof addon.name === "string"
+      )
+    : [];
+}
 
 export default async function AdminOrderDetailPage({
   params
@@ -49,8 +62,13 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between gap-4">
           <CardTitle>{order.order_number}</CardTitle>
+          <DeleteOrderButton
+            orderId={order.id}
+            orderNumber={order.order_number}
+            redirectToOrders
+          />
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
@@ -121,20 +139,36 @@ export default async function AdminOrderDetailPage({
           <CardTitle>Order items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {order.order_items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between rounded-[1.5rem] border border-border px-4 py-4"
-            >
-              <div>
-                <p className="font-medium">{item.product_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {item.variant_name ?? "Base"} • Qty {item.quantity}
-                </p>
+          {order.order_items.map((item) => {
+            const addons = getItemAddons(item.addons);
+
+            return (
+              <div
+                key={item.id}
+                className="rounded-[1.5rem] border border-border px-4 py-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-medium">{item.product_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.variant_name ?? "Base"} • Qty {item.quantity}
+                    </p>
+                  </div>
+                  <p className="font-medium">{formatCurrency(item.unit_price * item.quantity)}</p>
+                </div>
+                {addons.length > 0 ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Add-ons:{" "}
+                    {addons
+                      .map((addon) =>
+                        addon.price ? `${addon.name} (+${formatCurrency(addon.price)})` : addon.name
+                      )
+                      .join(", ")}
+                  </p>
+                ) : null}
               </div>
-              <p className="font-medium">{formatCurrency(item.unit_price * item.quantity)}</p>
-            </div>
-          ))}
+            );
+          })}
           <div className="rounded-[1.5rem] bg-secondary/70 px-5 py-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total</span>

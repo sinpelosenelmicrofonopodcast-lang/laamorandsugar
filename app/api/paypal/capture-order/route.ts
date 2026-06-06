@@ -6,19 +6,40 @@ import {
   createOrderMessage,
   ensureOrderStatusHistory,
   getSiteUrl,
-  notifyCustomerAboutOrderUpdate
+  notifyCustomerAboutOrderUpdate,
+  redeemOrderNewsletterDiscount
 } from "@/lib/order-service";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { capturePayPalOrder, getPayPalAccessToken, hasPayPalLiveEnv } from "@/lib/paypal";
+import { logSuspiciousActivity } from "@/lib/security/audit";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getRequestContext } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const context = getRequestContext(request);
+    const rate = checkRateLimit({
+      key: `paypal-capture:${context.ip}`,
+      limit: 20,
+      windowMs: 15 * 60 * 1000
+    });
+
+    if (rate.limited) {
+      await logSuspiciousActivity({
+        event: "paypal_capture_rate_limited",
+        reason: "Too many PayPal capture attempts.",
+        request,
+        severity: "high"
+      });
+      return NextResponse.json({ error: "Too many checkout attempts. Please wait and try again." }, { status: 429 });
+    }
+
     if (!hasSupabaseEnv()) {
-      return NextResponse.json({ error: "Supabase is not configured yet." }, { status: 400 });
+      return NextResponse.json({ error: "Checkout is temporarily unavailable." }, { status: 400 });
     }
 
     if (!hasPayPalLiveEnv()) {
@@ -123,6 +144,11 @@ export async function POST(request: Request) {
       throw updateError;
     }
 
+    await redeemOrderNewsletterDiscount(supabase, {
+      ...order,
+      ...updatePayload
+    });
+
     await ensureOrderStatusHistory(supabase, {
       orderId: order.id,
       oldStatus: order.order_status ?? "payment_pending",
@@ -162,9 +188,10 @@ export async function POST(request: Request) {
       redirectUrl: `${getSiteUrl()}/order-success?order=${order.id}`
     });
   } catch (error) {
+    console.error("[paypal-capture-order]", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to capture PayPal payment."
+        error: "Unable to capture PayPal payment."
       },
       { status: 500 }
     );

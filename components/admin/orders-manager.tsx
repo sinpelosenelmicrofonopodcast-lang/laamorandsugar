@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { updateOrderStatusAction } from "@/actions/admin";
+import { DeleteOrderButton } from "@/components/admin/delete-order-button";
 import { getOrderPaymentStatusCopy } from "@/lib/order-payments";
 import type { OrderWithItems } from "@/lib/types/app";
 import { getCustomerOrderStatusLabel, getPaymentStatusLabel } from "@/lib/order-status";
@@ -200,9 +201,12 @@ export function OrdersManager({ orders }: { orders: OrderWithItems[] }) {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/admin/orders/${order.id}`}>View</Link>
                   </Button>
+                  <DeleteOrderButton orderId={order.id} orderNumber={order.order_number} />
+                  </div>
                 </TableCell>
               </TableRow>
             );

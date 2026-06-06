@@ -21,6 +21,21 @@ import { Textarea } from "@/components/ui/textarea";
 
 const MAX_UPLOAD_SIZE_BYTES = 4 * 1024 * 1024;
 
+function buildDefaultCustomOptionGroups(product?: ProductWithRelations | null) {
+  if (product?.customOptions.optionGroups?.length) {
+    return product.customOptions.optionGroups;
+  }
+
+  return [
+    product?.customOptions.cakeFlavors?.length
+      ? { id: "cakeFlavor", label: "Cake flavor", values: product.customOptions.cakeFlavors }
+      : null,
+    product?.customOptions.chocolateColors?.length
+      ? { id: "chocolateColor", label: "Chocolate color", values: product.customOptions.chocolateColors }
+      : null
+  ].filter((group): group is { id: string; label: string; values: string[] } => Boolean(group));
+}
+
 function getDefaultValues(product?: ProductWithRelations | null): ProductFormValues {
   return {
     id: product?.id,
@@ -64,6 +79,12 @@ function getDefaultValues(product?: ProductWithRelations | null): ProductFormVal
         })
       ) ?? [],
     allergen_statement: product?.allergen_statement ?? "",
+    hasCustomOptions: product?.hasCustomOptions ?? false,
+    customOptions: {
+      optionGroups: buildDefaultCustomOptionGroups(product),
+      cakeFlavors: product?.customOptions.cakeFlavors ?? [],
+      chocolateColors: product?.customOptions.chocolateColors ?? []
+    },
     base_price: product?.base_price ?? 0,
     featured: product?.featured ?? false,
     seasonal: product?.seasonal ?? false,
@@ -100,6 +121,14 @@ function getDefaultValues(product?: ProductWithRelations | null): ProductFormVal
         is_active: addon.is_active,
         sort_order: addon.sort_order
       })) ?? []
+  };
+}
+
+function createCustomOptionGroup() {
+  return {
+    id: `option-${Date.now()}`,
+    label: "",
+    values: [""]
   };
 }
 
@@ -161,6 +190,10 @@ export function ProductForm({
   const variants = useFieldArray({ control: form.control, name: "variants" });
   const addons = useFieldArray({ control: form.control, name: "addons" });
   const nutritionFacts = useFieldArray({ control: form.control, name: "nutrition_facts" });
+  const customOptionGroups = useFieldArray({
+    control: form.control,
+    name: "customOptions.optionGroups"
+  });
   const formErrorMessage =
     submitMessage ??
     (form.formState.submitCount > 0
@@ -169,6 +202,13 @@ export function ProductForm({
           ? "Please review the highlighted fields before saving."
           : null)
       : null);
+
+  const updateCustomOptionChoices = (groupIndex: number, values: string[]) => {
+    form.setValue(`customOptions.optionGroups.${groupIndex}.values`, values, {
+      shouldDirty: true,
+      shouldValidate: true
+    });
+  };
 
   const onSubmit = form.handleSubmit(
     (values) => {
@@ -372,6 +412,9 @@ export function ProductForm({
               <option value="draft">Draft</option>
               <option value="archived">Archived</option>
             </select>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Draft and archived products are hidden from customers.
+            </p>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="short_description">Short description</Label>
@@ -398,7 +441,7 @@ export function ProductForm({
               { name: "seasonal", label: "Seasonal" },
               { name: "pickup_only", label: "Pickup only" },
               { name: "delivery_available", label: "Delivery available" },
-              { name: "active", label: "Visible on storefront" }
+              { name: "active", label: "Storefront enabled" }
             ].map((item) => (
               <label key={item.name} className="inline-flex items-center gap-3 text-sm">
                 <Checkbox
@@ -418,6 +461,120 @@ export function ProductForm({
                 {item.label}
               </label>
             ))}
+          </div>
+          <div className="rounded-[1.5rem] border border-border bg-secondary/30 p-5 md:col-span-2">
+            <label className="inline-flex items-center gap-3 text-sm font-medium text-foreground">
+              <Checkbox
+                checked={Boolean(form.watch("hasCustomOptions"))}
+                onCheckedChange={(checked) => {
+                  form.setValue("hasCustomOptions", Boolean(checked), {
+                    shouldDirty: true,
+                    shouldValidate: true
+                  });
+                  if (checked && customOptionGroups.fields.length === 0) {
+                    customOptionGroups.append(createCustomOptionGroup());
+                  }
+                }}
+              />
+              Enable custom options for this product
+            </label>
+            {form.watch("hasCustomOptions") ? (
+              <div className="mt-5 space-y-4">
+                {customOptionGroups.fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="grid gap-4 rounded-2xl border border-border bg-white/70 p-4 md:grid-cols-[0.7fr_1fr_auto]"
+                  >
+                    <input type="hidden" {...form.register(`customOptions.optionGroups.${index}.id`)} />
+                    <div className="space-y-2">
+                      <Label htmlFor={`custom-option-label-${index}`}>Option name</Label>
+                      <Input
+                        id={`custom-option-label-${index}`}
+                        placeholder="Cake flavor"
+                        {...form.register(`customOptions.optionGroups.${index}.label`)}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor={`custom-option-values-${index}`}>Choices</Label>
+                      {(form.watch(`customOptions.optionGroups.${index}.values`) ?? [""]).map(
+                        (choice, choiceIndex) => (
+                          <div key={choiceIndex} className="flex gap-2">
+                            <Input
+                              id={choiceIndex === 0 ? `custom-option-values-${index}` : undefined}
+                              placeholder={
+                                choiceIndex === 0
+                                  ? "Vanilla"
+                                  : choiceIndex === 1
+                                    ? "Chocolate"
+                                    : "Strawberry"
+                              }
+                              value={choice}
+                              onChange={(event) => {
+                                const currentValues = [
+                                  ...(form.getValues(`customOptions.optionGroups.${index}.values`) ?? [])
+                                ];
+                                currentValues[choiceIndex] = event.target.value;
+                                updateCustomOptionChoices(index, currentValues);
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const currentValues =
+                                  form.getValues(`customOptions.optionGroups.${index}.values`) ?? [];
+                                updateCustomOptionChoices(
+                                  index,
+                                  currentValues.filter((_, valueIndex) => valueIndex !== choiceIndex)
+                                );
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const currentValues =
+                            form.getValues(`customOptions.optionGroups.${index}.values`) ?? [];
+                          updateCustomOptionChoices(index, [...currentValues, ""]);
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add choice
+                      </Button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="self-start md:mt-8"
+                      onClick={() => customOptionGroups.remove(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => customOptionGroups.append(createCustomOptionGroup())}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add option group
+                </Button>
+                {customOptionGroups.fields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Add one or more option groups, like cake flavor, chocolate color, fillings, toppings, or sizes.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

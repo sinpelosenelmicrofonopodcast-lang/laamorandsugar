@@ -1,24 +1,69 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
+import type { CartItem } from "@/lib/store/cart-store";
 import { getCartItemKey, useCartStore } from "@/lib/store/cart-store";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 
+function formatCustomOption(label: string, value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const labels: Record<string, string> = {
+    cakeFlavor: "Cake flavor",
+    chocolateColor: "Chocolate color"
+  };
+
+  return `${labels[label] ?? label}: ${value}`;
+}
+
 export function CartView() {
+  const searchParams = useSearchParams();
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const replaceCart = useCartStore((state) => state.replaceCart);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   const subtotal = items.reduce(
     (sum, item) =>
       sum + item.unitPrice * item.quantity,
     0
   );
+
+  useEffect(() => {
+    const token = searchParams.get("recover");
+
+    if (!token) {
+      return;
+    }
+
+    setIsRecovering(true);
+    fetch(`/api/abandoned-cart/recover?token=${encodeURIComponent(token)}`)
+      .then(async (response) => {
+        const data = (await response.json()) as { items?: CartItem[]; error?: string };
+
+        if (!response.ok) {
+          throw new Error(data.error ?? "Unable to recover cart.");
+        }
+
+        if (data.items?.length) {
+          replaceCart(data.items);
+          toast.success("Your sweet cart has been restored.");
+        }
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to recover cart."))
+      .finally(() => setIsRecovering(false));
+  }, [replaceCart, searchParams]);
 
   if (items.length === 0) {
     return (
@@ -36,6 +81,11 @@ export function CartView() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      {isRecovering ? (
+        <div className="rounded-[1.5rem] border border-bakery-gold/20 bg-bakery-gold/10 p-4 text-sm text-bakery-espresso lg:col-span-2">
+          Restoring your sweet cart...
+        </div>
+      ) : null}
       <div className="space-y-4">
         {items.map((item) => {
           const key = getCartItemKey(item);
@@ -75,11 +125,21 @@ export function CartView() {
                         Add-ons: {item.addons.map((addon) => addon.name).join(", ")}
                       </p>
                     ) : null}
+                    {Object.keys(item.customOptions ?? {}).length > 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Custom options:{" "}
+                        {Object.entries(item.customOptions ?? {})
+                          .map(([key, value]) => formatCustomOption(key, value))
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
+                        aria-label={`Decrease quantity for ${item.name}`}
                         className="h-10 w-10 rounded-full border border-border"
                         onClick={() => updateQuantity(key, item.quantity - 1)}
                       >
@@ -88,6 +148,7 @@ export function CartView() {
                       <span className="w-5 text-center">{item.quantity}</span>
                       <button
                         type="button"
+                        aria-label={`Increase quantity for ${item.name}`}
                         className="h-10 w-10 rounded-full border border-border"
                         onClick={() => updateQuantity(key, item.quantity + 1)}
                       >

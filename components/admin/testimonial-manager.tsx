@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PencilLine, Trash2 } from "lucide-react";
@@ -19,7 +20,17 @@ import { Textarea } from "@/components/ui/textarea";
 
 type TestimonialValues = z.infer<typeof testimonialSchema>;
 
+function isUuid(value: string | null | undefined) {
+  return Boolean(
+    value &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value
+      )
+  );
+}
+
 export function TestimonialManager({ testimonials }: { testimonials: TestimonialRow[] }) {
+  const router = useRouter();
   const [editing, setEditing] = useState<TestimonialRow | null>(null);
   const [isPending, startTransition] = useTransition();
   const form = useForm<TestimonialValues>({
@@ -44,6 +55,7 @@ export function TestimonialManager({ testimonials }: { testimonials: Testimonial
       toast.success(editing ? "Testimonial updated" : "Testimonial created");
       setEditing(null);
       form.reset();
+      router.refresh();
     });
   });
 
@@ -102,51 +114,57 @@ export function TestimonialManager({ testimonials }: { testimonials: Testimonial
               </TableRow>
             </TableHeader>
             <TableBody>
-              {testimonials.map((testimonial) => (
-                <TableRow key={testimonial.id}>
-                  <TableCell>{testimonial.customer_name}</TableCell>
-                  <TableCell>{testimonial.rating}</TableCell>
-                  <TableCell>{testimonial.occasion ?? "General"}</TableCell>
-                  <TableCell className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditing(testimonial);
-                        form.reset({
-                          id: testimonial.id,
-                          customer_name: testimonial.customer_name,
-                          rating: testimonial.rating,
-                          quote: testimonial.quote,
-                          occasion: testimonial.occasion ?? "",
-                          featured: testimonial.featured,
-                          sort_order: testimonial.sort_order
-                        });
-                      }}
-                    >
-                      <PencilLine className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        startTransition(async () => {
-                          const result = await deleteTestimonialAction(testimonial.id);
-                          if (result.error) {
-                            toast.error(result.error);
-                            return;
-                          }
-                          toast.success("Testimonial deleted");
-                        })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {testimonials.map((testimonial) => {
+                const canPersist = isUuid(testimonial.id);
+
+                return (
+                  <TableRow key={testimonial.id}>
+                    <TableCell>{testimonial.customer_name}</TableCell>
+                    <TableCell>{testimonial.rating}</TableCell>
+                    <TableCell>{testimonial.occasion ?? "General"}</TableCell>
+                    <TableCell className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditing(canPersist ? testimonial : null);
+                          form.reset({
+                            id: canPersist ? testimonial.id : undefined,
+                            customer_name: testimonial.customer_name,
+                            rating: testimonial.rating,
+                            quote: testimonial.quote,
+                            occasion: testimonial.occasion ?? "",
+                            featured: testimonial.featured,
+                            sort_order: testimonial.sort_order
+                          });
+                        }}
+                      >
+                        <PencilLine className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={!canPersist}
+                        onClick={() =>
+                          startTransition(async () => {
+                            const result = await deleteTestimonialAction(testimonial.id);
+                            if (result.error) {
+                              toast.error(result.error);
+                              return;
+                            }
+                            toast.success("Testimonial deleted");
+                            router.refresh();
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

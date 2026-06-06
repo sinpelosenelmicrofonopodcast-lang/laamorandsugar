@@ -14,16 +14,23 @@ type CartState = {
   addItem: (item: CartItem) => void;
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
+  replaceCart: (items: CartItem[]) => void;
   clearCart: () => void;
 };
 
-function getCartKey(item: Pick<CartItem, "productId" | "variantId" | "addons">) {
+function getCartKey(item: Pick<CartItem, "productId" | "variantId" | "addons" | "customOptions">) {
   const addonKey = item.addons
     .map((addon) => addon.id)
     .sort()
     .join("-");
 
-  return [item.productId, item.variantId ?? "base", addonKey].join(":");
+  const customOptionsKey = Object.entries(item.customOptions ?? {})
+    .filter(([, value]) => value)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}-${String(value).slice(0, 80)}`)
+    .join("-");
+
+  return [item.productId, item.variantId ?? "base", addonKey, customOptionsKey].join(":");
 }
 
 export const useCartStore = create<CartState>()(
@@ -65,6 +72,7 @@ export const useCartStore = create<CartState>()(
             )
             .filter((item) => item.quantity > 0)
         })),
+      replaceCart: (items) => set({ items }),
       clearCart: () => set({ items: [] })
     }),
     {
@@ -73,6 +81,6 @@ export const useCartStore = create<CartState>()(
   )
 );
 
-export function getCartItemKey(item: Pick<CartItem, "productId" | "variantId" | "addons">) {
+export function getCartItemKey(item: Pick<CartItem, "productId" | "variantId" | "addons" | "customOptions">) {
   return getCartKey(item);
 }

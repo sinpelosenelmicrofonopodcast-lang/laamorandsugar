@@ -32,7 +32,7 @@ export default function CustomOrdersPage() {
               },
               {
                 title: "One organized intake flow",
-                description: "Reference uploads, notes, quantity, event theme, and budget all live in one admin queue."
+                description: "Share reference photos, notes, quantity, event theme, and budget in one simple request."
               }
             ].map((item) => (
               <Card key={item.title}>

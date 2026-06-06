@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 type LoginValues = z.infer<typeof loginSchema>;
 
@@ -42,6 +43,8 @@ export function CustomerAuthForm({
   const supabase = useMemo(() => createClient(), []);
   const [isPending, startTransition] = useTransition();
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null);
+  const [loginTurnstileToken, setLoginTurnstileToken] = useState("");
+  const [signUpTurnstileToken, setSignUpTurnstileToken] = useState("");
   const nextPath = resolveNextPath(searchParams);
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -63,7 +66,12 @@ export function CustomerAuthForm({
 
   const handleLogin = loginForm.handleSubmit((values) => {
     startTransition(async () => {
-      const { error } = await supabase.auth.signInWithPassword(values);
+      const { error } = await supabase.auth.signInWithPassword({
+        ...values,
+        options: {
+          captchaToken: loginTurnstileToken || undefined
+        }
+      });
 
       if (error) {
         toast.error(error.message);
@@ -83,6 +91,7 @@ export function CustomerAuthForm({
         password: values.password,
         options: {
           emailRedirectTo: `${window.location.origin}/order-status`,
+          captchaToken: signUpTurnstileToken || undefined,
           data: {
             full_name: values.full_name,
             phone: values.phone
@@ -149,6 +158,7 @@ export function CustomerAuthForm({
             <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
               Sign in
             </Button>
+            <TurnstileWidget action="customer_login" onVerify={setLoginTurnstileToken} />
           </form>
         ) : (
           <form className="space-y-4" onSubmit={handleSignUp}>
@@ -190,6 +200,7 @@ export function CustomerAuthForm({
             <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
               Create account
             </Button>
+            <TurnstileWidget action="customer_signup" onVerify={setSignUpTurnstileToken} />
           </form>
         )}
       </CardContent>

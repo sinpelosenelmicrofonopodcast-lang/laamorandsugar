@@ -15,7 +15,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-export function CouponManager({ coupons }: { coupons: CouponRow[] }) {
+type NewsletterSubscriberAdminRow = {
+  id: string;
+  email: string;
+  discount_code: string;
+  discount_used: boolean;
+  created_at: string;
+  discount_used_at: string | null;
+};
+
+export function CouponManager({
+  coupons,
+  newsletterSubscribers = []
+}: {
+  coupons: CouponRow[];
+  newsletterSubscribers?: NewsletterSubscriberAdminRow[];
+}) {
   const [editing, setEditing] = useState<CouponRow | null>(null);
   const [isPending, startTransition] = useTransition();
   const form = useForm<CouponFormValues>({
@@ -174,6 +189,46 @@ export function CouponManager({ coupons }: { coupons: CouponRow[] }) {
                   </TableCell>
                 </TableRow>
               ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <Card className="xl:col-span-2">
+        <CardHeader>
+          <CardTitle>Newsletter 10% subscribers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead>Used</TableHead>
+                <TableHead>Subscribed</TableHead>
+                <TableHead>Used at</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {newsletterSubscribers.map((subscriber) => (
+                <TableRow key={subscriber.id}>
+                  <TableCell>{subscriber.email}</TableCell>
+                  <TableCell className="font-mono text-xs">{subscriber.discount_code}</TableCell>
+                  <TableCell>{subscriber.discount_used ? "Yes" : "No"}</TableCell>
+                  <TableCell>{new Date(subscriber.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {subscriber.discount_used_at
+                      ? new Date(subscriber.discount_used_at).toLocaleString()
+                      : "Not used"}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {newsletterSubscribers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No newsletter subscribers yet.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,19 +1,9 @@
 import { MessageCircleHeart } from "lucide-react";
 
-function getWhatsAppHref() {
-  const raw = process.env.NEXT_PUBLIC_WHATSAPP_PHONE?.trim();
+import { getWhatsAppHref } from "@/lib/whatsapp";
 
-  if (!raw) {
-    return null;
-  }
-
-  const phone = raw.replace(/[^\d]/g, "");
-
-  return phone ? `https://wa.me/${phone}` : null;
-}
-
-export function WhatsAppFloatButton() {
-  const href = getWhatsAppHref();
+export function WhatsAppFloatButton({ phone }: { phone: string | null }) {
+  const href = getWhatsAppHref(phone);
 
   if (!href) {
     return null;
@@ -21,6 +11,7 @@ export function WhatsAppFloatButton() {
 
   return (
     <a
+      data-site-chrome
       href={href}
       target="_blank"
       rel="noreferrer"

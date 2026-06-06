@@ -10,9 +10,15 @@ import {
   createOrderMessage,
   getCustomerFacingOrderSummary,
   notifyCustomerAboutOrderUpdate,
+  redeemOrderNewsletterDiscount,
   updateOrderStatusWithCommunication
 } from "@/lib/order-service";
 import { getErrorMessage } from "@/lib/utils";
+import { logAdminAudit, logSuspiciousActivity } from "@/lib/security/audit";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getServerActionRequestContext } from "@/lib/security/request";
+import { sanitizeUnknown } from "@/lib/security/sanitize";
+import { getTurnstileToken, verifyTurnstileToken } from "@/lib/security/turnstile";
 import {
   customerOrderMessageSchema,
   orderLookupSchema,
@@ -54,7 +60,32 @@ async function canCurrentUserAccessOrder(order: {
 
 export async function lookupOrderStatusAction(input: unknown) {
   try {
-    const values = orderLookupSchema.parse(input);
+    const context = await getServerActionRequestContext();
+    const rate = checkRateLimit({
+      key: `order-lookup:${context.ip}`,
+      limit: 10,
+      windowMs: 15 * 60 * 1000
+    });
+
+    if (rate.limited) {
+      await logSuspiciousActivity({
+        event: "order_lookup_rate_limited",
+        reason: "Too many order lookup attempts from the same IP.",
+        severity: "medium"
+      });
+      return { error: "Too many lookup attempts. Please wait and try again." };
+    }
+
+    const turnstile = await verifyTurnstileToken({
+      token: getTurnstileToken(input),
+      expectedAction: "order_lookup"
+    });
+
+    if (!turnstile.success) {
+      return { error: turnstile.error ?? "Human verification failed." };
+    }
+
+    const values = orderLookupSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     let query = supabase
       .from("orders")
@@ -96,7 +127,32 @@ export async function lookupOrderStatusAction(input: unknown) {
 
 export async function sendCustomerOrderMessageAction(input: unknown) {
   try {
-    const values = customerOrderMessageSchema.parse(input);
+    const context = await getServerActionRequestContext();
+    const rate = checkRateLimit({
+      key: `customer-message:${context.ip}`,
+      limit: 12,
+      windowMs: 60 * 60 * 1000
+    });
+
+    if (rate.limited) {
+      await logSuspiciousActivity({
+        event: "customer_message_rate_limited",
+        reason: "Too many customer messages from the same IP.",
+        severity: "medium"
+      });
+      return { error: "Too many messages. Please wait and try again." };
+    }
+
+    const turnstile = await verifyTurnstileToken({
+      token: getTurnstileToken(input),
+      expectedAction: "customer_message"
+    });
+
+    if (!turnstile.success) {
+      return { error: turnstile.error ?? "Human verification failed." };
+    }
+
+    const values = customerOrderMessageSchema.parse(sanitizeUnknown(input));
     const { supabase, order } = await getOrderByTokenWithAdminClient(values.order_token);
 
     if (!order) {
@@ -184,8 +240,8 @@ export async function saveOrderPushSubscriptionAction(input: unknown) {
 
 export async function sendAdminOrderMessageAction(input: unknown) {
   try {
-    const { user } = await requireAdminAccess();
-    const values = orderMessageSchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+    const values = orderMessageSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     const { data: order } = await supabase.from("orders").select("*").eq("id", values.orderId).maybeSingle();
 
@@ -221,6 +277,14 @@ export async function sendAdminOrderMessageAction(input: unknown) {
     revalidatePath(`/admin/orders/${order.id}`);
     revalidatePath(`/order-status/${order.order_access_token}`);
 
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "admin_order_message_sent",
+      targetType: "order",
+      targetId: order.id
+    });
+
     return { success: true };
   } catch (error) {
     return {
@@ -231,8 +295,8 @@ export async function sendAdminOrderMessageAction(input: unknown) {
 
 export async function updateCustomerOrderWorkflowAction(input: unknown) {
   try {
-    const { user } = await requireAdminAccess();
-    const values = updateCustomerOrderWorkflowSchema.parse(input);
+    const { user, role } = await requireAdminAccess();
+    const values = updateCustomerOrderWorkflowSchema.parse(sanitizeUnknown(input));
     const supabase = createAdminClient() as any;
     const { data: order } = await supabase.from("orders").select("*").eq("id", values.orderId).maybeSingle();
 
@@ -257,6 +321,10 @@ export async function updateCustomerOrderWorkflowAction(input: unknown) {
       if (paymentError) {
         throw paymentError;
       }
+
+      if (values.payment_status === "paid") {
+        await redeemOrderNewsletterDiscount(supabase, order);
+      }
     }
 
     await updateOrderStatusWithCommunication(supabase, order, {
@@ -279,6 +347,18 @@ export async function updateCustomerOrderWorkflowAction(input: unknown) {
 
     revalidatePath("/admin/orders");
     revalidatePath(`/admin/orders/${order.id}`);
+
+    await logAdminAudit({
+      actorId: user.id,
+      actorRole: role,
+      action: "admin_order_workflow_updated",
+      targetType: "order",
+      targetId: order.id,
+      metadata: {
+        order_status: values.order_status,
+        payment_status: values.payment_status ?? null
+      }
+    });
     revalidatePath(`/order-status/${order.order_access_token}`);
 
     return { success: true };

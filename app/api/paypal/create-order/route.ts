@@ -6,13 +6,35 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createOrderRecord, prepareCheckoutOrder } from "@/lib/order-service";
 import { createPayPalOrder, getPayPalAccessToken, hasPayPalLiveEnv } from "@/lib/paypal";
+import { logSuspiciousActivity } from "@/lib/security/audit";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getRequestContext } from "@/lib/security/request";
+import { sanitizeUnknown } from "@/lib/security/sanitize";
+import { getTurnstileToken, verifyTurnstileToken } from "@/lib/security/turnstile";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const context = getRequestContext(request);
+    const rate = checkRateLimit({
+      key: `paypal-create:${context.ip}`,
+      limit: 10,
+      windowMs: 15 * 60 * 1000
+    });
+
+    if (rate.limited) {
+      await logSuspiciousActivity({
+        event: "paypal_create_rate_limited",
+        reason: "Too many PayPal order creation attempts.",
+        request,
+        severity: "high"
+      });
+      return NextResponse.json({ error: "Too many checkout attempts. Please wait and try again." }, { status: 429 });
+    }
+
     if (!hasSupabaseEnv()) {
-      return NextResponse.json({ error: "Supabase is not configured yet." }, { status: 400 });
+      return NextResponse.json({ error: "Checkout is temporarily unavailable." }, { status: 400 });
     }
 
     if (!hasPayPalLiveEnv()) {
@@ -20,6 +42,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const turnstile = await verifyTurnstileToken({
+      token: getTurnstileToken(body),
+      headers: request.headers,
+      expectedAction: "checkout"
+    });
+
+    if (!turnstile.success) {
+      return NextResponse.json({ error: turnstile.error ?? "Human verification failed." }, { status: 400 });
+    }
+
     const authClient = await createClient();
     const {
       data: { user }
@@ -33,7 +65,12 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient() as any;
-    const preparedResult = await prepareCheckoutOrder(body, supabase);
+    const preparedResult = await prepareCheckoutOrder(
+      typeof body === "object" && body !== null
+        ? { ...(sanitizeUnknown(body) as Record<string, unknown>), customer_email: user.email }
+        : body,
+      supabase
+    );
 
     if (preparedResult.error || !preparedResult.data) {
       return NextResponse.json(
@@ -43,7 +80,6 @@ export async function POST(request: Request) {
     }
 
     const prepared = preparedResult.data;
-    prepared.values.customer_email = user.email;
 
     await supabase.from("profiles").upsert({
       id: user.id,
@@ -104,9 +140,10 @@ export async function POST(request: Request) {
       orderNumber: orderRecord.orderNumber
     });
   } catch (error) {
+    console.error("[paypal-create-order]", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to create PayPal order."
+        error: "Unable to create PayPal order."
       },
       { status: 500 }
     );

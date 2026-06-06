@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
+  const [turnstileToken, setTurnstileToken] = useState("");
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -27,7 +29,10 @@ export function ForgotPasswordForm() {
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const result = await requestPasswordResetAction(values);
+      const result = await requestPasswordResetAction({
+        ...values,
+        turnstileToken
+      });
 
       if (result.error) {
         toast.error(result.error);
@@ -56,6 +61,7 @@ export function ForgotPasswordForm() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...form.register("email")} />
           </div>
+          <TurnstileWidget action="password_reset" onVerify={setTurnstileToken} />
           <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
             Send reset link
           </Button>

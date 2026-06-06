@@ -1,20 +1,22 @@
 export function getPayPalBaseUrl() {
-  return process.env.PAYPAL_ENV === "live"
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
+  const environment = process.env.PAYPAL_ENVIRONMENT ?? process.env.PAYPAL_ENV ?? "live";
+
+  return environment === "sandbox"
+    ? "https://api-m.sandbox.paypal.com"
+    : "https://api-m.paypal.com";
 }
 
 export function hasPayPalLiveEnv() {
   return Boolean(
     process.env.PAYPAL_CLIENT_ID &&
-      process.env.PAYPAL_CLIENT_SECRET &&
+      (process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_SECRET) &&
       process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
   );
 }
 
 export async function getPayPalAccessToken() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET ?? process.env.PAYPAL_SECRET;
 
   if (!clientId || !clientSecret) {
     throw new Error("PayPal is not configured.");

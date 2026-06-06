@@ -1,7 +1,9 @@
 import type {
+  FulfillmentOption,
   PaymentMethodCode,
   PaymentMethodSettings,
   PaymentSettings,
+  FeatureSettings,
   SiteSettingsModel,
   SiteSettingsRow
 } from "@/lib/types/app";
@@ -39,6 +41,35 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   manual_payment_note:
     "Orders stay pending until payment is received and confirmed."
 };
+
+export const DEFAULT_FULFILLMENT_OPTIONS: FulfillmentOption[] = [
+  {
+    id: "pickup-heb-copperas-cove",
+    type: "pickup",
+    label: "Free Pick Up HEB Copperas Cove",
+    fee: 0
+  },
+  {
+    id: "delivery-belton",
+    type: "delivery",
+    label: "Belton delivery",
+    fee: 10
+  }
+];
+
+export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
+  treat_designer_enabled: true,
+  treat_designer_disabled_message:
+    "Treat Designer is temporarily paused while we polish the experience. Please request a custom order and we will help you personally."
+};
+
+function slugifyOption(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function normalizeMethod(
   value: unknown,
@@ -93,10 +124,100 @@ export function normalizePaymentSettings(value: unknown): PaymentSettings {
   };
 }
 
+export function normalizeFulfillmentOptions(value: unknown): FulfillmentOption[] {
+  if (!Array.isArray(value)) {
+    return DEFAULT_FULFILLMENT_OPTIONS.map((option) => ({ ...option }));
+  }
+
+  const options = value
+    .map((entry, index): FulfillmentOption | null => {
+      if (typeof entry === "string" && entry.trim()) {
+        const label = entry.trim();
+
+        return {
+          id: `delivery-${slugifyOption(label) || index}`,
+          type: "delivery",
+          label,
+          fee: 20
+        };
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return null;
+      }
+
+      const source = entry as Record<string, unknown>;
+      const type = source.type === "pickup" ? "pickup" : "delivery";
+      const label = typeof source.label === "string" ? source.label.trim() : "";
+      const fee = Number(source.fee ?? 0);
+
+      if (!label) {
+        return null;
+      }
+
+      return {
+        id:
+          typeof source.id === "string" && source.id.trim()
+            ? source.id.trim()
+            : `${type}-${slugifyOption(label) || index}`,
+        type,
+        label,
+        fee: Number.isFinite(fee) && fee > 0 ? Math.round(fee * 100) / 100 : 0
+      };
+    })
+    .filter((option): option is FulfillmentOption => Boolean(option));
+
+  if (options.length === 0) {
+    return DEFAULT_FULFILLMENT_OPTIONS.map((option) => ({ ...option }));
+  }
+
+  const hasPickup = options.some((option) => option.type === "pickup");
+  const hasDelivery = options.some((option) => option.type === "delivery");
+  const defaultsToAdd = DEFAULT_FULFILLMENT_OPTIONS.filter(
+    (option) =>
+      (option.type === "pickup" && !hasPickup) ||
+      (option.type === "delivery" && !hasDelivery)
+  );
+
+  return [...defaultsToAdd.map((option) => ({ ...option })), ...options];
+}
+
+export function normalizeFeatureSettings(value: unknown): FeatureSettings {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ...DEFAULT_FEATURE_SETTINGS };
+  }
+
+  const source = value as Record<string, unknown>;
+  const message =
+    typeof source.treat_designer_disabled_message === "string" &&
+    source.treat_designer_disabled_message.trim()
+      ? source.treat_designer_disabled_message.trim()
+      : DEFAULT_FEATURE_SETTINGS.treat_designer_disabled_message;
+
+  return {
+    treat_designer_enabled:
+      typeof source.treat_designer_enabled === "boolean"
+        ? source.treat_designer_enabled
+        : DEFAULT_FEATURE_SETTINGS.treat_designer_enabled,
+    treat_designer_disabled_message: message
+  };
+}
+
 export function normalizeSiteSettings(row: SiteSettingsRow): SiteSettingsModel {
+  const paymentSettingsSource = (row as SiteSettingsRow & { payment_settings?: unknown }).payment_settings;
+  const paymentSettingsObject =
+    paymentSettingsSource && typeof paymentSettingsSource === "object" && !Array.isArray(paymentSettingsSource)
+      ? paymentSettingsSource as Record<string, unknown>
+      : {};
+
   return {
     ...row,
-    payment_settings: normalizePaymentSettings((row as SiteSettingsRow & { payment_settings?: unknown }).payment_settings)
+    delivery_zones: normalizeFulfillmentOptions(row.delivery_zones),
+    payment_settings: normalizePaymentSettings(paymentSettingsSource),
+    feature_settings: normalizeFeatureSettings(
+      (row as SiteSettingsRow & { feature_settings?: unknown }).feature_settings ??
+        paymentSettingsObject._feature_settings
+    )
   };
 }
 

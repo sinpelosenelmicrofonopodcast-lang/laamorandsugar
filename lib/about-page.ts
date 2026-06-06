@@ -26,6 +26,7 @@ export const DEFAULT_ABOUT_PAGE_CONTENT: AboutPageContentModel = {
   cta_button_text: "Start a Custom Order",
   cta_button_link: "/custom-orders",
   gallery_images: [],
+  credential_items: [],
   highlight_cards: [
     {
       title: "Custom Treats",
@@ -84,6 +85,7 @@ function normalizeHighlightCards(value: unknown) {
 
   const cards = value
     .filter(isObject)
+    .filter((card) => card.kind !== "credential")
     .map((card) => ({
       title: asString(card.title),
       text: asString(card.text)
@@ -96,6 +98,36 @@ function normalizeHighlightCards(value: unknown) {
     : DEFAULT_ABOUT_PAGE_CONTENT.highlight_cards.map((card) => ({ ...card }));
 }
 
+function normalizeCredentialItems(value: unknown) {
+  const source = Array.isArray(value)
+    ? value
+    : isObject(value) && Array.isArray(value.credential_items)
+      ? value.credential_items
+      : [];
+
+  if (source.length === 0) {
+    return [];
+  }
+
+  const credentials = source
+    .filter(isObject)
+    .filter((item) => item.kind === "credential" || typeof item.credential_type === "string")
+    .map((item) => ({
+      title: asString(item.title),
+      credential_type: asString(item.credential_type, "Credential"),
+      issuer: asString(item.issuer),
+      issued_at: asNullableString(item.issued_at),
+      description: asNullableString(item.description),
+      document_url: asNullableString(item.document_url),
+      button_label: asNullableString(item.button_label) ?? "View credential",
+      visible: item.visible !== false
+    }))
+    .filter((item) => item.title && item.issuer)
+    .slice(0, 8);
+
+  return credentials;
+}
+
 export function normalizeAboutPageContent(
   row: AboutPageContentRow | null | undefined
 ): AboutPageContentModel {
@@ -103,6 +135,7 @@ export function normalizeAboutPageContent(
     return {
       ...DEFAULT_ABOUT_PAGE_CONTENT,
       gallery_images: [],
+      credential_items: DEFAULT_ABOUT_PAGE_CONTENT.credential_items.map((item) => ({ ...item })),
       highlight_cards: DEFAULT_ABOUT_PAGE_CONTENT.highlight_cards.map((card) => ({ ...card }))
     };
   }
@@ -131,6 +164,7 @@ export function normalizeAboutPageContent(
     cta_button_link:
       asNullableString(row.cta_button_link) ?? DEFAULT_ABOUT_PAGE_CONTENT.cta_button_link,
     gallery_images: normalizeGalleryImages(row.gallery_images),
+    credential_items: normalizeCredentialItems(row.highlight_cards),
     highlight_cards: normalizeHighlightCards(row.highlight_cards)
   };
 }

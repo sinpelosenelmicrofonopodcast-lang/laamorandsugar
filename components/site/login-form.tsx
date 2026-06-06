@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,11 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
+  const [turnstileToken, setTurnstileToken] = useState("");
   const searchParams = useSearchParams();
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -30,7 +32,10 @@ export function LoginForm() {
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const result = await signInAction(values);
+      const result = await signInAction({
+        ...values,
+        turnstileToken
+      });
 
       if (result?.error) {
         toast.error(result.error);
@@ -42,14 +47,14 @@ export function LoginForm() {
     <Card className="mx-auto max-w-xl">
       <CardHeader>
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
-          Admin Access
+          Team Access
         </p>
-        <CardTitle>Sign in to manage the brand</CardTitle>
+        <CardTitle>Sign in securely</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {searchParams.get("error") === "forbidden" ? (
           <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            Your account does not have admin or staff access yet.
+            Your account does not have team access yet.
           </p>
         ) : null}
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -66,6 +71,7 @@ export function LoginForm() {
               Forgot your password?
             </Link>
           </div>
+          <TurnstileWidget action="admin_login" onVerify={setTurnstileToken} />
           <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
             Sign in
           </Button>

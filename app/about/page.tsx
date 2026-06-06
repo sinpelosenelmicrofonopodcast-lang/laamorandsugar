@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { ExternalLink, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,6 +98,62 @@ export default async function AboutPage() {
           ))}
         </div>
       </section>
+
+      {content.credential_items.some((item) => item.visible) ? (
+        <section className="mt-14">
+          <div className="mb-6 max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+              Trust & care
+            </p>
+            <h2 className="mt-3 font-serif text-4xl text-foreground">
+              Credentials you can feel good about
+            </h2>
+            <p className="mt-3 leading-8 text-muted-foreground">
+              We believe premium gifting should feel beautiful and reassuring. These records help
+              customers order custom treats with more confidence.
+            </p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {content.credential_items
+              .filter((item) => item.visible)
+              .map((item) => (
+                <Card
+                  key={`${item.title}-${item.issuer}`}
+                  className="border-bakery-gold/20 bg-white/80 shadow-card"
+                >
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="rounded-full bg-bakery-gold/15 p-3 text-bakery-gold">
+                        <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                      <p className="rounded-full bg-bakery-blush/35 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-bakery-espresso">
+                        {item.credential_type}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-2xl text-foreground">{item.title}</h3>
+                      <p className="mt-1 text-sm font-medium text-bakery-rose">{item.issuer}</p>
+                      {item.issued_at ? (
+                        <p className="mt-1 text-xs text-muted-foreground">{item.issued_at}</p>
+                      ) : null}
+                    </div>
+                    {item.description ? (
+                      <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
+                    ) : null}
+                    {item.document_url ? (
+                      <Button asChild variant="outline" className="rounded-full">
+                        <a href={item.document_url} target="_blank" rel="noreferrer">
+                          {item.button_label ?? "View credential"}
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                        </a>
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </section>
+      ) : null}
 
       {content.gallery_images.length > 0 ? (
         <section className="mt-14">

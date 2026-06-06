@@ -13,12 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 
 export function CustomOrderForm() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const form = useForm<CustomOrderValues>({
     resolver: zodResolver(customOrderSchema),
     defaultValues: {
@@ -40,6 +42,7 @@ export function CustomOrderForm() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("purpose", "custom-order");
+    formData.append("turnstileToken", turnstileToken);
 
     setUploading(true);
     try {
@@ -67,6 +70,7 @@ export function CustomOrderForm() {
     startTransition(async () => {
       const result = await submitCustomOrderAction({
         ...values,
+        turnstileToken,
         inspiration_image_url: imageUrl ?? values.inspiration_image_url ?? null,
         colors_theme: values.colors_theme || null,
         notes: values.notes || null
@@ -153,7 +157,7 @@ export function CustomOrderForm() {
               ref={inputRef}
               type="file"
               className="hidden"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) {
@@ -165,6 +169,9 @@ export function CustomOrderForm() {
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="notes">Extra Notes</Label>
             <Textarea id="notes" {...form.register("notes")} />
+          </div>
+          <div className="md:col-span-2">
+            <TurnstileWidget action="custom_order" onVerify={setTurnstileToken} />
           </div>
           <div className="md:col-span-2">
             <Button type="submit" variant="gold" size="lg" disabled={isPending || uploading}>

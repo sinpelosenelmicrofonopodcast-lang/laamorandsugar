@@ -2,12 +2,14 @@ import type {
   HomepageContentJson,
   HomepageContentModel,
   HomepageContentRow,
+  HomepageHomeContent,
   HomepageHowItWorksStep,
   HomepageIconName,
   HomepageImageAsset,
   HomepagePromiseCard,
   HomepageSectionKey
 } from "@/lib/types/app";
+import { DEFAULT_HOMEPAGE_CONTENT } from "@/lib/constants";
 
 export const HOMEPAGE_ICON_OPTIONS: HomepageIconName[] = [
   "sparkles",
@@ -24,12 +26,12 @@ export const HOMEPAGE_ICON_OPTIONS: HomepageIconName[] = [
 
 export const DEFAULT_HOMEPAGE_SECTIONS_ORDER: HomepageSectionKey[] = [
   "featured",
-  "custom_orders",
-  "how_it_works",
-  "seasonal",
   "trust",
-  "testimonials",
+  "how_it_works",
+  "custom_orders",
+  "seasonal",
   "gallery",
+  "testimonials",
   "final_cta"
 ];
 
@@ -58,24 +60,24 @@ const DEFAULT_HOW_IT_WORKS_STEPS: HomepageHowItWorksStep[] = [
 
 const DEFAULT_TRUST_CARDS: HomepagePromiseCard[] = [
   {
-    title: "Freshly Made",
-    text: "Every order is prepared with care and attention to detail.",
-    icon: "sparkles"
-  },
-  {
-    title: "Custom Details",
-    text: "Colors, themes, and designs can be personalized for your occasion.",
-    icon: "palette"
-  },
-  {
-    title: "Beautiful Presentation",
-    text: "Every box is styled to feel gift-ready and special.",
+    title: "Perfect for",
+    text: "Mother’s Day, birthdays, anniversaries, apology gifts, and just because.",
     icon: "gift"
   },
   {
-    title: "Pickup & Local Delivery",
-    text: "Convenient pickup and local delivery options are available in select areas.",
+    title: "Pickup & Delivery",
+    text: "Pickup & delivery available in Killeen, TX. Fort Hood pickup available.",
     icon: "truck"
+  },
+  {
+    title: "Order Timing",
+    text: "Orders require 2–3 days notice. Same-day availability may be limited.",
+    icon: "calendar"
+  },
+  {
+    title: "Limited Availability",
+    text: "Every order is handcrafted and customized, so once we’re booked… that’s it.",
+    icon: "sparkles"
   }
 ];
 
@@ -91,29 +93,95 @@ function cloneCards(cards: HomepagePromiseCard[]) {
   return cards.map((card) => ({ ...card }));
 }
 
+function cloneHomeContent(content: HomepageHomeContent): HomepageHomeContent {
+  return {
+    ...content,
+    hero: {
+      ...content.hero,
+      chips: [...content.hero.chips]
+    },
+    best_sellers: {
+      ...content.best_sellers
+    },
+    occasions: [...content.occasions],
+    final_cta: {
+      ...content.final_cta
+    },
+    custom_order: {
+      ...content.custom_order
+    }
+  };
+}
+
+export const DEFAULT_HOMEPAGE_HOME_CONTENT: HomepageHomeContent = {
+  hero: {
+    eyebrow: "Luxury sweet gifting in Killeen, TX",
+    headline: "Gifts that make people say WOW before they even taste them.",
+    subheadline:
+      "Luxury chocolate-covered strawberries, dessert boxes, edible arrangements, and custom treats made to impress every time.",
+    urgency: "Limited handcrafted availability this week. Orders require 2–3 days notice, and same-day availability may be limited.",
+    cta_primary: "Order Now",
+    cta_secondary: "Start Custom Order",
+    micro_copy: "Because flowers are nice... but edible ones? unforgettable.",
+    badge: "Gift-ready treats for every sweet moment",
+    image_badge: "Luxury gifting",
+    image_title: "Dessert gifts that look unforgettable before the first bite.",
+    chips: [
+      "Chocolate-covered strawberries",
+      "Dessert boxes",
+      "Edible arrangements",
+      "Custom orders"
+    ],
+    reserve_card_title: "Limited handcrafted availability",
+    reserve_card_text:
+      "Orders require 2–3 days notice, and same-day availability may be limited during busy weeks.",
+    delivery_card_title: "Pickup & delivery available",
+    delivery_card_text:
+      "Pickup and delivery are available in Killeen, TX, and Fort Hood pickup is available for select orders."
+  },
+  best_sellers: {
+    title: "Everyone’s Ordering These Right Now",
+    subtitle: "Our most wanted treats — the ones that get reactions every single time."
+  },
+  about:
+    "This isn’t just dessert.\n\nIt’s the moment they open the box.\nIt’s the smile you were hoping for.\nIt’s the reaction you don’t get with regular gifts.\n\nBecause flowers are nice…\nbut edible ones? unforgettable.",
+  occasions_heading: "Perfect for:",
+  occasions: [
+    "Mother’s Day",
+    "Birthdays",
+    "Anniversaries",
+    "Apology gifts",
+    "Just because"
+  ],
+  delivery:
+    "Pickup & delivery available in Killeen, TX\nFort Hood pickup available\n\nOrders require 2–3 days notice.\nSame-day availability may be limited.",
+  urgency_section:
+    "We don’t mass produce.\n\nEvery order is handcrafted and customized — which means availability is limited.\n\nOnce we’re booked… that’s it.",
+  final_cta: {
+    title: "Don’t wait until it’s too late.",
+    text: "Order now and secure your spot."
+  },
+  custom_order: {
+    title: "Build Your Gift Box",
+    description:
+      "Pick your treats, colors, theme, packaging, and personal details. We’ll turn your idea into a gift-ready sweet experience."
+  }
+};
+
 export const DEFAULT_HOMEPAGE_CONTENT_JSON: HomepageContentJson = {
   sections_order: [...DEFAULT_HOMEPAGE_SECTIONS_ORDER],
+  home_content: cloneHomeContent(DEFAULT_HOMEPAGE_HOME_CONTENT),
   featured: {
     is_enabled: true,
     product_ids: []
   },
   custom_orders: {
     is_enabled: true,
-    title: "Made Just for Your Occasion",
-    description:
-      "Tell us your theme, colors, event, or inspiration and we’ll help turn it into a custom sweet experience.",
+    title: DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.title,
+    description: DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.description,
     image_url: null,
     image_alt: "Custom dessert treats styled for a special occasion",
-    bullets: [
-      "Birthdays",
-      "Baby showers",
-      "Mother’s Day",
-      "Teacher gifts",
-      "Holidays",
-      "Business gifts",
-      "Party favors",
-      "Custom colors and themes"
-    ],
+    bullets: [...DEFAULT_HOMEPAGE_HOME_CONTENT.occasions],
     button_text: "Start a Custom Order",
     button_link: "/custom-orders"
   },
@@ -129,14 +197,14 @@ export const DEFAULT_HOMEPAGE_CONTENT_JSON: HomepageContentJson = {
     image_url: null,
     image_alt: "Seasonal dessert box display",
     button_text: "View Seasonal Specials",
-    button_link: "/products?seasonal=true",
+    button_link: "/shop?seasonal=true",
     product_ids: [],
     special_ids: []
   },
   trust: {
     is_enabled: true,
-    title: "Made With Love, Styled With Care",
-    description: "",
+    title: "This isn’t just dessert.",
+    description: DEFAULT_HOMEPAGE_HOME_CONTENT.about,
     cards: cloneCards(DEFAULT_TRUST_CARDS)
   },
   testimonials: {
@@ -150,9 +218,8 @@ export const DEFAULT_HOMEPAGE_CONTENT_JSON: HomepageContentJson = {
   },
   final_cta: {
     is_enabled: true,
-    title: "Ready to Create Something Sweet?",
-    text:
-      "Whether it’s a gift, a party, or a custom dessert box, we’re ready to make it beautiful and delicious.",
+    title: DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta.title,
+    text: DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta.text,
     button_text: "Start Your Order",
     button_link: "/custom-orders",
     background_image_url: null,
@@ -258,6 +325,11 @@ function normalizeSectionsOrder(value: unknown) {
 
 function normalizeContentJson(content: unknown): HomepageContentJson {
   const raw = isObject(content) ? content : {};
+  const rawHomeContent = isObject(raw.home_content) ? raw.home_content : {};
+  const rawHeroContent = isObject(rawHomeContent.hero) ? rawHomeContent.hero : {};
+  const rawBestSellers = isObject(rawHomeContent.best_sellers) ? rawHomeContent.best_sellers : {};
+  const rawFinalCopy = isObject(rawHomeContent.final_cta) ? rawHomeContent.final_cta : {};
+  const rawCustomOrderCopy = isObject(rawHomeContent.custom_order) ? rawHomeContent.custom_order : {};
   const rawFeatured = isObject(raw.featured) ? raw.featured : {};
   const rawCustomOrders = isObject(raw.custom_orders) ? raw.custom_orders : {};
   const rawHowItWorks = isObject(raw.how_it_works) ? raw.how_it_works : {};
@@ -269,6 +341,90 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
 
   return {
     sections_order: normalizeSectionsOrder(raw.sections_order),
+    home_content: {
+      hero: {
+        eyebrow: asString(rawHeroContent.eyebrow, DEFAULT_HOMEPAGE_HOME_CONTENT.hero.eyebrow),
+        headline: asString(rawHeroContent.headline, DEFAULT_HOMEPAGE_HOME_CONTENT.hero.headline),
+        subheadline: asString(
+          rawHeroContent.subheadline,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.subheadline
+        ),
+        urgency: asString(rawHeroContent.urgency, DEFAULT_HOMEPAGE_HOME_CONTENT.hero.urgency),
+        cta_primary: asString(
+          rawHeroContent.cta_primary,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.cta_primary
+        ),
+        cta_secondary: asString(
+          rawHeroContent.cta_secondary,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.cta_secondary
+        ),
+        micro_copy: asString(
+          rawHeroContent.micro_copy,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.micro_copy
+        ),
+        badge: asString(rawHeroContent.badge, DEFAULT_HOMEPAGE_HOME_CONTENT.hero.badge),
+        image_badge: asString(
+          rawHeroContent.image_badge,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.image_badge
+        ),
+        image_title: asString(
+          rawHeroContent.image_title,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.image_title
+        ),
+        chips: asStringArray(rawHeroContent.chips, DEFAULT_HOMEPAGE_HOME_CONTENT.hero.chips),
+        reserve_card_title: asString(
+          rawHeroContent.reserve_card_title,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.reserve_card_title
+        ),
+        reserve_card_text: asString(
+          rawHeroContent.reserve_card_text,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.reserve_card_text
+        ),
+        delivery_card_title: asString(
+          rawHeroContent.delivery_card_title,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.delivery_card_title
+        ),
+        delivery_card_text: asString(
+          rawHeroContent.delivery_card_text,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.hero.delivery_card_text
+        )
+      },
+      best_sellers: {
+        title: asString(
+          rawBestSellers.title,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.best_sellers.title
+        ),
+        subtitle: asString(
+          rawBestSellers.subtitle,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.best_sellers.subtitle
+        )
+      },
+      about: asString(rawHomeContent.about, DEFAULT_HOMEPAGE_HOME_CONTENT.about),
+      occasions_heading: asString(
+        rawHomeContent.occasions_heading,
+        DEFAULT_HOMEPAGE_HOME_CONTENT.occasions_heading
+      ),
+      occasions: asStringArray(rawHomeContent.occasions, DEFAULT_HOMEPAGE_HOME_CONTENT.occasions),
+      delivery: asString(rawHomeContent.delivery, DEFAULT_HOMEPAGE_HOME_CONTENT.delivery),
+      urgency_section: asString(
+        rawHomeContent.urgency_section,
+        DEFAULT_HOMEPAGE_HOME_CONTENT.urgency_section
+      ),
+      final_cta: {
+        title: asString(rawFinalCopy.title, DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta.title),
+        text: asString(rawFinalCopy.text, DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta.text)
+      },
+      custom_order: {
+        title: asString(
+          rawCustomOrderCopy.title,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.title
+        ),
+        description: asString(
+          rawCustomOrderCopy.description,
+          DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.description
+        )
+      }
+    },
     featured: {
       is_enabled: asBoolean(
         rawFeatured.is_enabled,
@@ -283,11 +439,11 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
       ),
       title: asString(
         rawCustomOrders.title,
-        DEFAULT_HOMEPAGE_CONTENT_JSON.custom_orders.title
+        DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.title
       ),
       description: asString(
         rawCustomOrders.description,
-        DEFAULT_HOMEPAGE_CONTENT_JSON.custom_orders.description
+        DEFAULT_HOMEPAGE_HOME_CONTENT.custom_order.description
       ),
       image_url: asNullableString(rawCustomOrders.image_url),
       image_alt: asString(
@@ -296,7 +452,7 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
       ),
       bullets: asStringArray(
         rawCustomOrders.bullets,
-        DEFAULT_HOMEPAGE_CONTENT_JSON.custom_orders.bullets
+        DEFAULT_HOMEPAGE_HOME_CONTENT.occasions
       ),
       button_text: asString(
         rawCustomOrders.button_text,
@@ -352,7 +508,7 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
       title: asString(rawTrust.title, DEFAULT_HOMEPAGE_CONTENT_JSON.trust.title),
       description: asString(
         rawTrust.description,
-        DEFAULT_HOMEPAGE_CONTENT_JSON.trust.description
+        DEFAULT_HOMEPAGE_HOME_CONTENT.about
       ),
       cards: normalizePromiseCards(rawTrust.cards)
     },
@@ -377,7 +533,7 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
         DEFAULT_HOMEPAGE_CONTENT_JSON.final_cta.is_enabled
       ),
       title: asString(rawFinalCta.title, DEFAULT_HOMEPAGE_CONTENT_JSON.final_cta.title),
-      text: asString(rawFinalCta.text, DEFAULT_HOMEPAGE_CONTENT_JSON.final_cta.text),
+      text: asString(rawFinalCta.text, DEFAULT_HOMEPAGE_HOME_CONTENT.final_cta.text),
       button_text: asString(
         rawFinalCta.button_text,
         DEFAULT_HOMEPAGE_CONTENT_JSON.final_cta.button_text
@@ -396,13 +552,27 @@ function normalizeContentJson(content: unknown): HomepageContentJson {
 }
 
 export function normalizeHomepageContent(row: HomepageContentRow): HomepageContentModel {
+  const contentJson = normalizeContentJson(row.content_json);
+
   return {
     ...row,
+    banner_text: row.banner_text ?? null,
+    banner_cta_label: row.banner_cta_label ?? null,
+    banner_cta_href: row.banner_cta_href ?? null,
     seo_title:
       row.seo_title ?? "L&A Amor & Sugar | Custom Desserts & Sweet Treats in Killeen, TX",
     seo_description:
       row.seo_description ??
       "Custom desserts, chocolate-covered strawberries, cake pops, dessert boxes, and seasonal treats made with love in Killeen, TX. Order online or request a custom treat box.",
+    hero_eyebrow: row.hero_eyebrow ?? contentJson.home_content.hero.eyebrow,
+    hero_title: row.hero_title ?? contentJson.home_content.hero.headline,
+    hero_description: row.hero_description ?? contentJson.home_content.hero.subheadline,
+    hero_primary_cta_label:
+      row.hero_primary_cta_label ?? contentJson.home_content.hero.cta_primary,
+    hero_primary_cta_href: row.hero_primary_cta_href ?? "/shop",
+    hero_secondary_cta_label:
+      row.hero_secondary_cta_label ?? contentJson.home_content.hero.cta_secondary,
+    hero_secondary_cta_href: row.hero_secondary_cta_href ?? "/custom-orders",
     hero_image_url: row.hero_image_url ?? null,
     hero_image_alt: row.hero_image_alt ?? "Luxury custom desserts by L&A Amor & Sugar",
     hero_mobile_image_url: row.hero_mobile_image_url ?? null,
@@ -411,6 +581,18 @@ export function normalizeHomepageContent(row: HomepageContentRow): HomepageConte
     hero_background_image_url: row.hero_background_image_url ?? null,
     hero_background_image_alt:
       row.hero_background_image_alt ?? "Soft luxury dessert background",
-    content_json: normalizeContentJson(row.content_json)
+    featured_heading: row.featured_heading ?? contentJson.home_content.best_sellers.title,
+    featured_description:
+      row.featured_description ?? contentJson.home_content.best_sellers.subtitle,
+    process_heading: row.process_heading ?? DEFAULT_HOMEPAGE_CONTENT.process_heading,
+    process_description:
+      row.process_description ?? DEFAULT_HOMEPAGE_CONTENT.process_description,
+    testimonials_heading:
+      row.testimonials_heading ?? DEFAULT_HOMEPAGE_CONTENT.testimonials_heading,
+    testimonials_description:
+      row.testimonials_description ?? DEFAULT_HOMEPAGE_CONTENT.testimonials_description,
+    cta_heading: row.cta_heading ?? contentJson.home_content.final_cta.title,
+    cta_description: row.cta_description ?? contentJson.home_content.final_cta.text,
+    content_json: contentJson
   };
 }

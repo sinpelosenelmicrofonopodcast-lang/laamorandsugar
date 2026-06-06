@@ -19,16 +19,21 @@ declare global {
 
 type PayPalCheckoutButtonProps = {
   active: boolean;
+  amount: number;
+  shippingFee?: number;
   preparePayload: () => Promise<(CheckoutValues & { items: CheckoutValues["items"] }) | null>;
   onSuccess: () => void;
 };
 
 export function PayPalCheckoutButton({
   active,
+  amount,
+  shippingFee = 0,
   preparePayload,
   onSuccess
 }: PayPalCheckoutButtonProps) {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const serverUrl = process.env.NEXT_PUBLIC_PAYPAL_SERVER_URL?.replace(/\/$/, "");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
 
@@ -55,13 +60,25 @@ export function PayPalCheckoutButton({
             throw new Error("Please complete the checkout form first.");
           }
 
-          const response = await fetch("/api/paypal/create-order", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-          });
+          const response = await fetch(
+            serverUrl ? `${serverUrl}/create-order` : "/api/paypal/create-order",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(
+                serverUrl
+                  ? {
+                      amount,
+                      shippingFee,
+                      description: "L&A Amor & Sugar checkout deposit",
+                      customId: payload.customer_email
+                    }
+                  : payload
+              )
+            }
+          );
           const data = (await response.json()) as { id?: string; error?: string };
 
           if (!response.ok || !data.id) {
@@ -71,28 +88,40 @@ export function PayPalCheckoutButton({
           return data.id;
         },
         onApprove: async (data: { orderID?: string }) => {
-          const response = await fetch("/api/paypal/capture-order", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              orderID: data.orderID
-            })
-          });
+          const response = await fetch(
+            serverUrl
+              ? `${serverUrl}/capture-order/${data.orderID}`
+              : "/api/paypal/capture-order",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                orderID: data.orderID
+              })
+            }
+          );
           const result = (await response.json()) as {
             success?: boolean;
             redirectUrl?: string;
+            transaction?: unknown;
             error?: string;
           };
 
-          if (!response.ok || !result.success || !result.redirectUrl) {
+          if (!response.ok || !result.success) {
             toast.error(result.error ?? "We could not capture your PayPal payment.");
             return;
           }
 
           onSuccess();
-          window.location.href = result.redirectUrl;
+
+          if (result.redirectUrl) {
+            window.location.href = result.redirectUrl;
+            return;
+          }
+
+          toast.success("PayPal payment captured successfully.");
         },
         onCancel: () => {
           toast.message("PayPal checkout was cancelled. Your cart is still here.");
@@ -109,7 +138,7 @@ export function PayPalCheckoutButton({
           error instanceof Error ? error.message : "Unable to load the PayPal button.";
         toast.error(message);
       });
-  }, [active, onSuccess, preparePayload, sdkReady]);
+  }, [active, amount, onSuccess, preparePayload, sdkReady, serverUrl, shippingFee]);
 
   if (!clientId || !active) {
     return null;

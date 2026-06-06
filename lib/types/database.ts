@@ -96,7 +96,16 @@ export interface Database {
           nutrition_servings_per_container: string | null;
           nutrition_facts: Json | null;
           allergen_statement: string | null;
+          custom_options: Json | null;
           base_price: number;
+          min_quantity: number;
+          image: string | null;
+          treat_designer_enabled: boolean;
+          treat_designer_featured: boolean;
+          enable_sprinkles: boolean;
+          enable_logo_upload: boolean;
+          enable_live_preview: boolean;
+          logo_upload_fee: number;
           featured: boolean;
           seasonal: boolean;
           stock_quantity: number | null;
@@ -120,7 +129,16 @@ export interface Database {
           nutrition_servings_per_container?: string | null;
           nutrition_facts?: Json | null;
           allergen_statement?: string | null;
+          custom_options?: Json | null;
           base_price: number;
+          min_quantity?: number;
+          image?: string | null;
+          treat_designer_enabled?: boolean;
+          treat_designer_featured?: boolean;
+          enable_sprinkles?: boolean;
+          enable_logo_upload?: boolean;
+          enable_live_preview?: boolean;
+          logo_upload_fee?: number;
           featured?: boolean;
           seasonal?: boolean;
           stock_quantity?: number | null;
@@ -143,7 +161,16 @@ export interface Database {
           nutrition_servings_per_container?: string | null;
           nutrition_facts?: Json | null;
           allergen_statement?: string | null;
+          custom_options?: Json | null;
           base_price?: number;
+          min_quantity?: number;
+          image?: string | null;
+          treat_designer_enabled?: boolean;
+          treat_designer_featured?: boolean;
+          enable_sprinkles?: boolean;
+          enable_logo_upload?: boolean;
+          enable_live_preview?: boolean;
+          logo_upload_fee?: number;
           featured?: boolean;
           seasonal?: boolean;
           stock_quantity?: number | null;
@@ -443,6 +470,7 @@ export interface Database {
           quantity: number;
           addons: Json | null;
           image_url: string | null;
+          customization: Json | null;
           created_at: string;
         };
         Insert: {
@@ -456,6 +484,7 @@ export interface Database {
           quantity: number;
           addons?: Json | null;
           image_url?: string | null;
+          customization?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -467,6 +496,7 @@ export interface Database {
           quantity?: number;
           addons?: Json | null;
           image_url?: string | null;
+          customization?: Json | null;
         };
       };
       order_messages: {
@@ -887,6 +917,7 @@ export interface Database {
           free_delivery_threshold: number | null;
           currency: string;
           payment_settings: Json | null;
+          feature_settings: Json | null;
           updated_at: string;
         };
         Insert: {
@@ -905,6 +936,7 @@ export interface Database {
           free_delivery_threshold?: number | null;
           currency?: string;
           payment_settings?: Json | null;
+          feature_settings?: Json | null;
           updated_at?: string;
         };
         Update: {
@@ -922,6 +954,7 @@ export interface Database {
           free_delivery_threshold?: number | null;
           currency?: string;
           payment_settings?: Json | null;
+          feature_settings?: Json | null;
           updated_at?: string;
         };
       };

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { buildMetadata } from "@/lib/config/site";
+import { buildBreadcrumbJsonLd, buildFaqJsonLd } from "@/lib/seo";
 
 const faqs = [
   {
@@ -43,7 +44,7 @@ const faqs = [
   {
     question: "Do you offer refunds or cancellations?",
     answer:
-      "Because our desserts are custom-made, all sales are final once the order is confirmed. If you need to make changes, please contact us as soon as possible."
+      "Because our desserts are custom-made, refunds are not available once production has started. Cancellations must be made at least 72 hours before the scheduled pickup or delivery date."
   },
   {
     question: "Do your products contain allergens?",
@@ -65,49 +66,61 @@ export const metadata = buildMetadata({
 
 export default function FaqPage() {
   return (
-    <div className="container py-16 sm:py-20">
-      <SectionHeading
-        eyebrow="FAQ"
-        title="Frequently Asked Questions"
-        description="Everything you need to know before placing your sweet order."
-      />
-      <div className="mt-10 grid gap-4 sm:gap-5">
-        {faqs.map((faq) => (
-          <Card
-            key={faq.question}
-            className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 shadow-card backdrop-blur-sm"
-          >
-            <CardContent className="p-6 sm:p-7">
-              <h2 className="font-serif text-2xl leading-tight text-foreground sm:text-3xl">
-                {faq.question}
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-[15px]">
-                {faq.answer}
+    <>
+      {[buildBreadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "FAQ", path: "/faq" }]), buildFaqJsonLd(faqs)].map((schema, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <div className="container py-16 sm:py-20">
+        <SectionHeading
+          eyebrow="FAQ"
+          title="Frequently Asked Questions"
+          description="Everything you need to know before placing your sweet order."
+        />
+        <div className="mt-10 grid gap-4 sm:gap-5">
+          {faqs.map((faq) => (
+            <Card
+              key={faq.question}
+              className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 shadow-card backdrop-blur-sm"
+            >
+              <CardContent className="p-6 sm:p-7">
+                <h2 className="font-serif text-2xl leading-tight text-foreground sm:text-3xl">
+                  {faq.question}
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-[15px]">
+                  {faq.answer}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="mt-10 rounded-[2rem] border border-bakery-gold/20 bg-[linear-gradient(135deg,rgba(255,248,243,0.95),rgba(255,255,255,0.92))] shadow-card">
+          <CardContent className="flex flex-col gap-5 p-8 text-center sm:p-10">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-bakery-gold">
+                Custom Orders
               </p>
-            </CardContent>
-          </Card>
-        ))}
+              <h2 className="font-serif text-3xl text-foreground sm:text-4xl">
+                Ready to create something sweet?
+              </h2>
+              <p className="mx-auto max-w-2xl text-sm leading-7 text-muted-foreground sm:text-[15px]">
+                Send us your idea and we&apos;ll help bring it to life.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button asChild variant="gold" size="lg">
+                <Link href="/custom-orders">Start a Custom Order</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/policies">Review Policies</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <Card className="mt-10 rounded-[2rem] border border-bakery-gold/20 bg-[linear-gradient(135deg,rgba(255,248,243,0.95),rgba(255,255,255,0.92))] shadow-card">
-        <CardContent className="flex flex-col gap-5 p-8 text-center sm:p-10">
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-bakery-gold">
-              Custom Orders
-            </p>
-            <h2 className="font-serif text-3xl text-foreground sm:text-4xl">
-              Ready to create something sweet?
-            </h2>
-            <p className="mx-auto max-w-2xl text-sm leading-7 text-muted-foreground sm:text-[15px]">
-              Send us your idea and we&apos;ll help bring it to life.
-            </p>
-          </div>
-          <div className="flex justify-center">
-            <Button asChild variant="gold" size="lg">
-              <Link href="/custom-orders">Start a Custom Order</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </>
   );
 }

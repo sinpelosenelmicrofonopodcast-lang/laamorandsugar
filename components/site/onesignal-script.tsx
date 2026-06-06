@@ -21,6 +21,10 @@ export function OneSignalScript() {
           window.OneSignalDeferred.push(async function(OneSignal) {
             await OneSignal.init({
               appId: "${oneSignalAppId}",
+              serviceWorkerParam: { scope: "/" },
+              serviceWorkerPath: "/OneSignalSDKWorker.js",
+              notifyButton: { enable: false },
+              allowLocalhostAsSecureOrigin: true,
             });
           });
         `}

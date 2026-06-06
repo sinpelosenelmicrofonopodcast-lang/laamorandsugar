@@ -22,6 +22,7 @@ export function ResetPasswordForm() {
   const supabase = useMemo(() => createClient(), []);
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<"checking" | "ready" | "invalid">("checking");
+  const recoveryStateKey = "la-password-recovery-active";
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -33,42 +34,127 @@ export function ResetPasswordForm() {
   useEffect(() => {
     let mounted = true;
 
+    const setRecoveryActive = () => {
+      window.sessionStorage.setItem(recoveryStateKey, Date.now().toString());
+      if (mounted) {
+        setStatus("ready");
+      }
+    };
+
+    const clearRecoveryActive = () => {
+      window.sessionStorage.removeItem(recoveryStateKey);
+    };
+
+    const hasRecentRecoveryState = () => {
+      const value = window.sessionStorage.getItem(recoveryStateKey);
+
+      if (!value) {
+        return false;
+      }
+
+      const timestamp = Number(value);
+
+      if (!Number.isFinite(timestamp)) {
+        clearRecoveryActive();
+        return false;
+      }
+
+      const maxAgeMs = 30 * 60 * 1000;
+      const isFresh = Date.now() - timestamp < maxAgeMs;
+
+      if (!isFresh) {
+        clearRecoveryActive();
+      }
+
+      return isFresh;
+    };
+
     const checkRecoverySession = async () => {
-      const code = new URL(window.location.href).searchParams.get("code");
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const isRecoveryRedirect = url.searchParams.get("recovery") === "1";
+      const hasResetError = url.searchParams.has("error");
+      const hash = window.location.hash;
+      const hasRecoveryHash =
+        hash.includes("type=recovery") ||
+        (hash.includes("access_token=") && hash.includes("refresh_token="));
+
+      if (hasResetError) {
+        clearRecoveryActive();
+        window.history.replaceState({}, document.title, "/reset-password");
+        setStatus("invalid");
+        return;
+      }
 
       if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        if (error && mounted) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if ((error || !data.session) && mounted) {
+          clearRecoveryActive();
           setStatus("invalid");
           return;
         }
-      }
 
-      const { data } = await supabase.auth.getSession();
-
-      if (!mounted) {
+        setRecoveryActive();
+        window.history.replaceState({}, document.title, "/reset-password");
         return;
       }
 
-      if (data.session) {
-        setStatus("ready");
+      if (isRecoveryRedirect) {
+        const { data } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        if (data.session) {
+          setRecoveryActive();
+          window.history.replaceState({}, document.title, "/reset-password");
+          return;
+        }
+
+        clearRecoveryActive();
+        window.history.replaceState({}, document.title, "/reset-password");
+        setStatus("invalid");
         return;
       }
 
-      const hash = window.location.hash;
-      const isRecoveryHash = hash.includes("type=recovery") || hash.includes("access_token=");
-
-      if (isRecoveryHash) {
+      if (hasRecoveryHash) {
         window.setTimeout(async () => {
-          const { data: delayed } = await supabase.auth.getSession();
+          const { data } = await supabase.auth.getSession();
           if (!mounted) {
             return;
           }
-          setStatus(delayed.session ? "ready" : "invalid");
-        }, 400);
+
+          if (data.session) {
+            setRecoveryActive();
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+
+          clearRecoveryActive();
+          setStatus("invalid");
+        }, 500);
         return;
       }
 
+      if (hasRecentRecoveryState()) {
+        const { data } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        if (data.session) {
+          setStatus("ready");
+          return;
+        }
+
+        clearRecoveryActive();
+        setStatus("invalid");
+        return;
+      }
+
+      clearRecoveryActive();
       setStatus("invalid");
     };
 
@@ -81,8 +167,15 @@ export function ResetPasswordForm() {
         return;
       }
 
-      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
-        setStatus("ready");
+      if (event === "PASSWORD_RECOVERY" && session) {
+        setRecoveryActive();
+        window.history.replaceState({}, document.title, "/reset-password");
+        return;
+      }
+
+      if (event === "SIGNED_OUT") {
+        clearRecoveryActive();
+        setStatus("invalid");
       }
     });
 
@@ -99,10 +192,19 @@ export function ResetPasswordForm() {
       });
 
       if (error) {
+        if (error.message.toLowerCase().includes("reauthentication")) {
+          window.sessionStorage.removeItem(recoveryStateKey);
+          toast.error("Your reset session expired. Please request a new password reset link.");
+          setStatus("invalid");
+          return;
+        }
+
         toast.error(error.message);
         return;
       }
 
+      window.sessionStorage.removeItem(recoveryStateKey);
+      await supabase.auth.signOut();
       toast.success("Password updated");
       router.push("/account/login");
       router.refresh();
