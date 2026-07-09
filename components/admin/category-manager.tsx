@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageIcon, PencilLine, Trash2, Upload } from "lucide-react";
+import { ImageIcon, PencilLine, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteCategoryAction, upsertCategoryAction } from "@/actions/admin";
@@ -116,24 +116,35 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
               <Label>Description</Label>
               <Textarea className="min-h-[120px]" {...form.register("description")} />
             </div>
-            <div className="space-y-2">
-              <Label>Image URL</Label>
-              <Input {...form.register("image_url")} />
-            </div>
             <div className="space-y-3 rounded-2xl border border-dashed border-border bg-muted/20 p-4">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <Label htmlFor="category-image-upload">Collection image</Label>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Upload the exact image this collection card should display.
+                    Upload the image this collection card should display. This never pulls from products.
                   </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImage}>
-                  <label htmlFor="category-image-upload" className="cursor-pointer">
-                    <Upload className="mr-2 h-4 w-4" />
-                    {uploadingImage ? "Uploading..." : "Upload"}
-                  </label>
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImage}>
+                    <label htmlFor="category-image-upload" className="cursor-pointer">
+                      <Upload className="mr-2 h-4 w-4" />
+                      {uploadingImage ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
+                    </label>
+                  </Button>
+                  {imageUrl ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        form.setValue("image_url", "", { shouldDirty: true, shouldValidate: true })
+                      }
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
               </div>
               <input
                 id="category-image-upload"
@@ -161,6 +172,16 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
                     No collection image assigned
                   </div>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label>Image URL</Label>
+                <Input
+                  placeholder="Uploaded image URL appears here"
+                  {...form.register("image_url")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional: paste a media library URL only when needed. Upload is preferred.
+                </p>
               </div>
             </div>
             <div className="space-y-2">
