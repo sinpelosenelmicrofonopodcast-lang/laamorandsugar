@@ -11,6 +11,10 @@ const CSRF_EXEMPT_PATHS = new Set([
   "/api/marketing/automation",
   "/api/social/automation"
 ]);
+const CASE_SENSITIVE_REDIRECTS = new Map([
+  ["/collections/Cake-Pops", "/collections/cake-pops"],
+  ["/collections/Cakesicles", "/collections/cakesicles"]
+]);
 
 function withSecurityHeaders(response: NextResponse) {
   for (const header of securityHeaders) {
@@ -46,6 +50,15 @@ function rateLimitForPath(pathname: string) {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const redirectPath = CASE_SENSITIVE_REDIRECTS.get(pathname);
+
+  if (redirectPath) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = redirectPath;
+
+    return withSecurityHeaders(NextResponse.redirect(redirectUrl, 301));
+  }
+
   const ip = getClientIpFromHeaders(request.headers);
   const rate = rateLimitForPath(pathname);
   const rateResult = checkRateLimit({

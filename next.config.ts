@@ -38,16 +38,6 @@ const nextConfig: NextConfig = {
         source: "/collections/chocolate-covered-cookies-and-cream",
         destination: "/collections/chocolate-covered-strawberries",
         statusCode: 301
-      },
-      {
-        source: "/collections/Cake-Pops",
-        destination: "/collections/cake-pops",
-        statusCode: 301
-      },
-      {
-        source: "/collections/Cakesicles",
-        destination: "/collections/cakesicles",
-        statusCode: 301
       }
     ];
   }
