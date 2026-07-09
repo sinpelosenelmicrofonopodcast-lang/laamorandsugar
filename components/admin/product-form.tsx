@@ -271,14 +271,7 @@ export function ProductForm({
       return;
     }
 
-    const remainingSlots = 3 - images.fields.length;
-
-    if (remainingSlots <= 0) {
-      toast.error("You can only upload up to 3 images per product.");
-      return;
-    }
-
-    const selectedFiles = Array.from(files).slice(0, remainingSlots);
+    const selectedFiles = Array.from(files);
 
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_UPLOAD_SIZE_BYTES);
 
@@ -666,7 +659,7 @@ export function ProductForm({
               type="button"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={images.fields.length >= 3 || isUploadingImages}
+              disabled={isUploadingImages}
             >
               <ImagePlus className="h-4 w-4" />
               {isUploadingImages ? "Uploading..." : "Upload images"}
@@ -675,7 +668,6 @@ export function ProductForm({
               type="button"
               variant="outline"
               onClick={() =>
-                images.fields.length < 3 &&
                 images.append({
                   image_url: "",
                   alt_text: "",
@@ -683,7 +675,6 @@ export function ProductForm({
                   is_primary: images.fields.length === 0
                 })
               }
-              disabled={images.fields.length >= 3}
             >
               <Plus className="h-4 w-4" />
               Add URL
@@ -693,7 +684,7 @@ export function ProductForm({
         <CardContent className="space-y-4">
           <FieldError message={form.formState.errors.images?.message as string | undefined} />
           <div className="rounded-[1.25rem] border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
-            Upload or paste between 1 and 3 images. Exactly one must be marked as primary.
+            Upload or paste as many images as you need. Exactly one must be marked as primary.
             Images must be smaller than 4 MB each for reliable uploads.
           </div>
           {images.fields.map((field, index) => (

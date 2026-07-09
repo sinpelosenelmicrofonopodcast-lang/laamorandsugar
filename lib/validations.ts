@@ -250,8 +250,7 @@ export const productSchema = z.object({
   active: z.boolean().default(true),
   images: z
     .array(productImageSchema)
-    .min(1, "Add at least 1 product image.")
-    .max(3, "Maximum 3 images per product"),
+    .min(1, "Add at least 1 product image."),
   variants: z.array(productVariantSchema).min(1, "Add at least 1 product variant."),
   addons: z.preprocess(filterBlankAddons, z.array(productAddonSchema).default([]))
 }).superRefine((value, ctx) => {

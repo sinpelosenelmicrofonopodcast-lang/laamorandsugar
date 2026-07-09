@@ -66,13 +66,6 @@ export async function POST(
     .select("*", { count: "exact", head: true })
     .eq("product_id", id);
 
-  if ((count ?? 0) >= 3) {
-    return NextResponse.json(
-      { error: "A product can only have up to 3 images." },
-      { status: 400 }
-    );
-  }
-
   if (values.is_primary) {
     await supabase
       .from("product_images")
