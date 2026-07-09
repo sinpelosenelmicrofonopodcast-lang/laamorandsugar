@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilLine, Trash2 } from "lucide-react";
+import { ImageIcon, PencilLine, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteCategoryAction, upsertCategoryAction } from "@/actions/admin";
@@ -19,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
   const [editing, setEditing] = useState<CategoryRow | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [isPending, startTransition] = useTransition();
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -30,6 +32,7 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
       sort_order: 0
     }
   });
+  const imageUrl = form.watch("image_url");
 
   const handleEdit = (category: CategoryRow) => {
     setEditing(category);
@@ -57,6 +60,42 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
     });
   });
 
+  const handleImageUpload = async (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file.");
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "admin/categories");
+
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData
+      });
+      const json = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !json.url) {
+        throw new Error(json.error ?? "Upload failed.");
+      }
+
+      form.setValue("image_url", json.url, { shouldDirty: true, shouldValidate: true });
+      toast.success("Category image uploaded");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
     <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
       <Card>
@@ -80,6 +119,49 @@ export function CategoryManager({ categories }: { categories: CategoryRow[] }) {
             <div className="space-y-2">
               <Label>Image URL</Label>
               <Input {...form.register("image_url")} />
+            </div>
+            <div className="space-y-3 rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="category-image-upload">Collection image</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Upload the exact image this collection card should display.
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImage}>
+                  <label htmlFor="category-image-upload" className="cursor-pointer">
+                    <Upload className="mr-2 h-4 w-4" />
+                    {uploadingImage ? "Uploading..." : "Upload"}
+                  </label>
+                </Button>
+              </div>
+              <input
+                id="category-image-upload"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploadingImage}
+                onChange={(event) => {
+                  void handleImageUpload(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <div className="relative aspect-video overflow-hidden rounded-xl bg-[#F9F6F2]">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt="Selected collection preview"
+                    fill
+                    sizes="(min-width: 1280px) 38vw, 90vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <ImageIcon className="h-7 w-7" />
+                    No collection image assigned
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Sort order</Label>
