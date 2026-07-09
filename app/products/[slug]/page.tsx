@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ProductDetailClient } from "@/components/site/product-detail-client";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
-import { getProductBySlug, getProducts } from "@/lib/data/queries";
+import { getProductBySlug, getProducts, getTestimonials } from "@/lib/data/queries";
 import { buildMetadata } from "@/lib/config/site";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo";
 import { resolveImageUrl } from "@/lib/utils";
@@ -51,7 +51,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     notFound();
   }
 
-  const relatedProducts = (await getProducts())
+  const [allProducts, testimonials] = await Promise.all([getProducts(), getTestimonials()]);
+  const relatedProducts = allProducts
     .filter((item) => item.id !== product.id)
     .filter(
       (item) =>
@@ -84,7 +85,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           description={product.short_description ?? getProductDescription(product)}
         />
         <div className="mt-10">
-          <ProductDetailClient product={product} relatedProducts={relatedProducts} />
+          <ProductDetailClient
+            product={product}
+            relatedProducts={relatedProducts}
+            testimonials={testimonials.slice(0, 3)}
+          />
         </div>
       </div>
     </>

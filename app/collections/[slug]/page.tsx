@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { notFound } from "next/navigation";
 import { ArrowRight, ShieldCheck, Sparkles, Truck } from "lucide-react";
 
@@ -81,6 +82,15 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
   const cleanSlug = category.slug.toLowerCase();
   const collectionProducts = products.filter((product) => product.categories?.slug.toLowerCase() === category.slug.toLowerCase());
+  const fallbackProducts = products.filter((product) => product.featured || product.seasonal).slice(0, 6);
+  const visibleProducts = collectionProducts.length > 0 ? collectionProducts : fallbackProducts;
+  const relatedCollections = categories
+    .map((item: CategoryRow) => ({
+      ...item,
+      productCount: products.filter((product) => product.categories?.id === item.id).length
+    }))
+    .filter((item: CategoryRow & { productCount: number }) => item.id !== category.id && item.productCount > 0)
+    .slice(0, 6);
   const jsonLd = [
     buildBreadcrumbJsonLd([
       { name: "Home", path: "/" },
@@ -167,12 +177,12 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
       <section className="py-14 sm:py-16">
         <SectionHeading
-          eyebrow={`${collectionProducts.length} sweet options`}
+          eyebrow={collectionProducts.length > 0 ? `${collectionProducts.length} sweet options` : "Recommended sweets"}
           title="Gift-ready picks from this collection"
-          description="Choose a product, add it to cart, or start a custom order for colors, themes, packaging, and personal details."
+          description="Choose a product, add it to cart, or start a custom order for colors, themes, packaging, edible images, logos, names, and personal details."
         />
         <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {collectionProducts.map((product) => (
+          {visibleProducts.map((product) => (
             <ProductCard key={product.id} product={product} ctaLabel="View gift details" />
           ))}
         </div>
@@ -196,6 +206,43 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-8 pb-16 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[2rem] border border-bakery-gold/20 bg-bakery-gold/10 p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+            Helpful buying information
+          </p>
+          <h2 className="mt-3 font-serif text-4xl text-foreground">Before you order</h2>
+          <div className="mt-5 grid gap-3 text-sm leading-6 text-bakery-espresso">
+            <p>Orders are handcrafted and made fresh, so 2-3 days notice is recommended.</p>
+            <p>Custom names, edible images, logos, chocolate colors, theme colors, sprinkles, packaging, and ribbon details belong inside the product or custom order flow.</p>
+            <p>Pickup and local delivery may be available for Killeen, Fort Cavazos, Harker Heights, Copperas Cove, Belton, Temple, and Central Texas.</p>
+          </div>
+        </div>
+        {relatedCollections.length > 0 ? (
+          <div>
+            <SectionHeading
+              eyebrow="Related collections"
+              title="Keep browsing"
+              description="Products can appear across multiple collections without duplicate listings."
+            />
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {relatedCollections.map((item: CategoryRow & { productCount: number }) => (
+                <Link
+                  key={item.id}
+                  href={`/collections/${item.slug.toLowerCase()}` as Route}
+                  className="rounded-[1.35rem] border border-white/75 bg-white/84 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-card"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-bakery-gold">
+                    {item.productCount} items
+                  </p>
+                  <h3 className="mt-2 font-serif text-2xl text-foreground">{item.name}</h3>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

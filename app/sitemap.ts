@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { getCategories, getProducts } from "@/lib/data/queries";
 import { blogPosts, localSeoPages } from "@/lib/seo-content";
+import { occasionLinks } from "@/lib/storefront-taxonomy";
 import type { CategoryRow } from "@/lib/types/app";
 
 const staticRoutes = [
@@ -10,6 +11,9 @@ const staticRoutes = [
   { path: "/links", priority: 0.98 },
   { path: "/menu", priority: 0.96 },
   { path: "/shop", priority: 0.92 },
+  { path: "/occasions", priority: 0.9 },
+  { path: "/gallery", priority: 0.72 },
+  { path: "/delivery", priority: 0.76 },
   { path: "/blog", priority: 0.68 },
   { path: "/treat-designer", priority: 0.88 },
   { path: "/treat-designer/teacher-appreciation", priority: 0.74 },
@@ -46,11 +50,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: product.featured ? 0.9 : product.seasonal ? 0.86 : 0.78
     })),
-    ...categories.map((category: CategoryRow) => ({
-      url: url(`/collections/${category.slug.toLowerCase()}`),
-      lastModified: category.updated_at ? new Date(category.updated_at) : now,
+    ...categories
+      .filter((category: CategoryRow) => products.some((product) => product.categories?.id === category.id))
+      .map((category: CategoryRow) => ({
+        url: url(`/collections/${category.slug.toLowerCase()}`),
+        lastModified: category.updated_at ? new Date(category.updated_at) : now,
+        changeFrequency: "weekly" as const,
+        priority: 0.72
+      })),
+    ...occasionLinks.map((occasion) => ({
+      url: url(`/occasions/${occasion.slug}`),
+      lastModified: now,
       changeFrequency: "weekly" as const,
-      priority: 0.72
+      priority: 0.7
     })),
     ...localSeoPages.map((page) => ({
       url: url(`/${page.slug}`),

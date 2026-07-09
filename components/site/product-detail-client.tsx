@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import type { ProductWithRelations } from "@/lib/types/app";
+import type { ProductWithRelations, TestimonialRow } from "@/lib/types/app";
 import { useCartStore } from "@/lib/store/cart-store";
 import { getProductBadges, getProductStockState } from "@/lib/product-presentation";
 import { formatCurrency, resolveImageUrl } from "@/lib/utils";
@@ -25,10 +25,12 @@ function buildProductAlt(product: ProductWithRelations) {
 
 export function ProductDetailClient({
   product,
-  relatedProducts = []
+  relatedProducts = [],
+  testimonials = []
 }: {
   product: ProductWithRelations;
   relatedProducts?: ProductWithRelations[];
+  testimonials?: TestimonialRow[];
 }) {
   const nutritionFacts = Array.isArray(product.nutrition_facts)
     ? product.nutrition_facts.filter(
@@ -68,6 +70,9 @@ export function ProductDetailClient({
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
+  const [recentlyViewed, setRecentlyViewed] = useState<
+    { slug: string; name: string; image: string | null; price: number }[]
+  >([]);
   const [isPending, startTransition] = useTransition();
   const addItem = useCartStore((state) => state.addItem);
 
@@ -98,6 +103,21 @@ export function ProductDetailClient({
   );
   const frequentlyBoughtTogether = relatedProducts.slice(0, 2);
   const completeTheCollection = relatedProducts.slice(2, 6);
+
+  useEffect(() => {
+    const key = "la_recently_viewed_products";
+    const current = {
+      slug: product.slug,
+      name: product.name,
+      image: selectedImage,
+      price: selectedVariant?.price ?? product.base_price
+    };
+    const existing = JSON.parse(window.localStorage.getItem(key) ?? "[]") as typeof recentlyViewed;
+    const next = [current, ...existing.filter((item) => item.slug !== product.slug)].slice(0, 8);
+
+    setRecentlyViewed(next.filter((item) => item.slug !== product.slug).slice(0, 4));
+    window.localStorage.setItem(key, JSON.stringify(next));
+  }, [product.base_price, product.name, product.slug, selectedImage, selectedVariant?.price]);
 
   const handleAddToCart = () => {
     if (soldOut) {
@@ -417,7 +437,7 @@ export function ProductDetailClient({
       <Card className="overflow-hidden border-bakery-gold/20 bg-bakery-gold/10">
         <CardContent className="space-y-3 p-7">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
-            Handcrafted with love 🤍
+            Handcrafted with love
           </p>
           <p className="max-w-3xl text-sm leading-7 text-bakery-espresso">
             This food is made in a home kitchen and is not inspected by the Texas Department of
@@ -425,6 +445,88 @@ export function ProductDetailClient({
           </p>
         </CardContent>
       </Card>
+
+      <section className="grid gap-6 lg:grid-cols-3">
+        <Card className="border-white/70 bg-white/85">
+          <CardContent className="p-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+              Care instructions
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-foreground">Keep it fresh</h2>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              Keep treats cool, shaded, and level after pickup or delivery. Chocolate and decorated sweets
+              are temperature sensitive, especially in Texas heat.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-white/70 bg-white/85">
+          <CardContent className="p-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+              Ingredients
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-foreground">Premium sweet details</h2>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              Ingredients vary by design, flavor, chocolate, colors, fillings, and add-ons. Share dietary
+              questions before ordering so we can review your request.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-white/70 bg-white/85">
+          <CardContent className="p-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+              Allergens
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-foreground">Please ask first</h2>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              {product.allergen_statement ??
+                "Our kitchen may handle milk, eggs, wheat, soy, peanuts, tree nuts, and other allergens. Please disclose allergies before placing an order."}
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        {[
+          {
+            question: "Can this be customized?",
+            answer: "Yes. Use available product options or request a custom order for colors, themes, names, logos, edible images, packaging, event date, and notes."
+          },
+          {
+            question: "When should I order?",
+            answer: "Two to three days notice is recommended. Larger orders, corporate gifts, and detailed custom designs may require more time."
+          },
+          {
+            question: "Is local delivery available?",
+            answer: "Pickup and local delivery may be available in Killeen, Fort Cavazos, Harker Heights, Copperas Cove, Belton, Temple, and nearby Central Texas areas."
+          }
+        ].map((faq) => (
+          <article key={faq.question} className="rounded-[1.6rem] border border-white/75 bg-white/84 p-6 shadow-sm">
+            <h2 className="font-serif text-2xl leading-tight text-foreground">{faq.question}</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+          </article>
+        ))}
+      </section>
+
+      {testimonials.length > 0 ? (
+        <section className="space-y-6">
+          <SectionHeading
+            eyebrow="Customer reviews"
+            title="Trusted for sweet moments"
+            description="Real customer notes help new shoppers feel confident choosing custom desserts, gift boxes, and event treats."
+          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <article key={testimonial.id} className="rounded-[1.6rem] border border-white/75 bg-white/84 p-6 shadow-sm">
+                <p className="text-sm leading-7 text-muted-foreground">“{testimonial.quote}”</p>
+                <p className="mt-4 font-semibold text-foreground">{testimonial.customer_name}</p>
+                {testimonial.occasion ? (
+                  <p className="text-xs uppercase tracking-[0.18em] text-bakery-gold">{testimonial.occasion}</p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {frequentlyBoughtTogether.length > 0 ? (
         <Card className="overflow-hidden border-white/70 bg-white/85">
@@ -471,6 +573,35 @@ export function ProductDetailClient({
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {completeTheCollection.map((item) => (
               <ProductCard key={item.id} product={item} ctaLabel="Complete the look" />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {recentlyViewed.length > 0 ? (
+        <section className="space-y-6">
+          <SectionHeading
+            eyebrow="Recently viewed"
+            title="Still deciding?"
+            description="Pick up where you left off without searching again."
+          />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {recentlyViewed.map((item) => (
+              <Link
+                key={item.slug}
+                href={`/products/${item.slug}`}
+                className="overflow-hidden rounded-[1.5rem] border border-white/75 bg-white/84 shadow-sm transition hover:-translate-y-1 hover:shadow-card"
+              >
+                {item.image ? (
+                  <div className="relative aspect-square">
+                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
+                  </div>
+                ) : null}
+                <div className="p-4">
+                  <h3 className="font-serif text-2xl text-foreground">{item.name}</h3>
+                  <p className="mt-1 text-sm font-semibold text-bakery-rose">{formatCurrency(item.price)}</p>
+                </div>
+              </Link>
             ))}
           </div>
         </section>

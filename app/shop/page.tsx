@@ -78,9 +78,13 @@ function CategoryShowcase({
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {categories.map((category: CategoryRow) => {
-        const count = products.filter((product) => product.categories?.id === category.id).length;
-
+      {categories
+        .map((category: CategoryRow) => ({
+          category,
+          count: products.filter((product) => product.categories?.id === category.id).length
+        }))
+        .filter((item: { category: CategoryRow; count: number }) => item.count > 0)
+        .map(({ category, count }: { category: CategoryRow; count: number }) => {
         return (
           <Link
             key={category.id}

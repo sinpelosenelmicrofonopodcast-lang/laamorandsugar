@@ -1,5 +1,5 @@
 import { siteConfig } from "@/lib/config/site";
-import { getCategories } from "@/lib/data/queries";
+import { getCategories, getProducts } from "@/lib/data/queries";
 import type { CategoryRow } from "@/lib/types/app";
 
 function escapeXml(value: string) {
@@ -12,10 +12,11 @@ function escapeXml(value: string) {
 }
 
 export async function GET() {
-  const categories = await getCategories();
+  const [categories, products] = await Promise.all([getCategories(), getProducts()]);
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${categories
+  .filter((category: CategoryRow) => products.some((product) => product.categories?.id === category.id))
   .map((category: CategoryRow) => {
     const loc = new URL(`/collections/${category.slug.toLowerCase()}`, siteConfig.url).toString();
     const lastmod = category.updated_at ? new Date(category.updated_at).toISOString() : new Date().toISOString();
