@@ -22,8 +22,7 @@ const staticRoutes = [
   { path: "/reviews", priority: 0.68 },
   { path: "/faq", priority: 0.64 },
   { path: "/policies", priority: 0.58 },
-  { path: "/contact", priority: 0.62 },
-  { path: "/order-status", priority: 0.35 }
+  { path: "/contact", priority: 0.62 }
 ];
 
 function url(path: string) {

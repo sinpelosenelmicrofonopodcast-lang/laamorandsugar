@@ -9,12 +9,12 @@ import { CartButton } from "@/components/site/cart-button";
 import { Button } from "@/components/ui/button";
 
 const publicNav = [
-  { href: "/menu", label: "Menu" },
-  { href: "/shop", label: "Shop" },
+  { href: "/shop", label: "Shop by Product" },
+  { href: "/menu", label: "Shop by Occasion" },
+  { href: "/shop?seasonal=true" as Route, label: "Seasonal" },
   { href: "/treat-designer" as Route, label: "Treat Designer" },
   { href: "/custom-orders", label: "Custom Orders" },
   { href: "/about", label: "About" },
-  { href: "/reviews", label: "Reviews" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" }
 ] satisfies ReadonlyArray<{ href: Route; label: string }>;

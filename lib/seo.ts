@@ -37,7 +37,11 @@ export function buildOrganizationJsonLd(settings: SiteSettingsRow) {
     },
     areaServed: [
       { "@type": "City", name: "Killeen" },
-      { "@type": "Place", name: "Fort Hood" },
+      { "@type": "Place", name: "Fort Cavazos" },
+      { "@type": "City", name: "Harker Heights" },
+      { "@type": "City", name: "Copperas Cove" },
+      { "@type": "City", name: "Temple" },
+      { "@type": "City", name: "Belton" },
       { "@type": "State", name: "Texas" }
     ],
     priceRange: "$$",
@@ -121,15 +125,11 @@ export function buildProductJsonLd(product: ProductWithRelations) {
       },
       shippingDetails: {
         "@type": "OfferShippingDetails",
+        name: "Local pickup and delivery arranged at checkout",
         shippingDestination: {
           "@type": "DefinedRegion",
           addressCountry: "US",
           addressRegion: "TX"
-        },
-        shippingRate: {
-          "@type": "MonetaryAmount",
-          value: "0.00",
-          currency: "USD"
         },
         deliveryTime: {
           "@type": "ShippingDeliveryTime",
@@ -162,7 +162,7 @@ export function buildLocalServiceJsonLd(input: {
       name: "L&A Amor & Sugar",
       url: absoluteUrl("/")
     },
-    areaServed: (input.areaServed ?? ["Killeen", "Fort Hood", "Harker Heights", "Belton", "Temple", "Central Texas"]).map((name) => ({
+    areaServed: (input.areaServed ?? ["Killeen", "Fort Cavazos", "Harker Heights", "Copperas Cove", "Belton", "Temple", "Central Texas"]).map((name) => ({
       "@type": "Place",
       name
     })),

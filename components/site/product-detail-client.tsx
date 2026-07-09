@@ -7,9 +7,11 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { ProductWithRelations } from "@/lib/types/app";
-import { getCartItemKey, useCartStore } from "@/lib/store/cart-store";
+import { useCartStore } from "@/lib/store/cart-store";
 import { getProductBadges, getProductStockState } from "@/lib/product-presentation";
 import { formatCurrency, resolveImageUrl } from "@/lib/utils";
+import { ProductCard } from "@/components/site/product-card";
+import { SectionHeading } from "@/components/site/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +23,13 @@ function buildProductAlt(product: ProductWithRelations) {
   return `${product.name} ${category} by L&A Amor & Sugar in Killeen Texas`;
 }
 
-export function ProductDetailClient({ product }: { product: ProductWithRelations }) {
+export function ProductDetailClient({
+  product,
+  relatedProducts = []
+}: {
+  product: ProductWithRelations;
+  relatedProducts?: ProductWithRelations[];
+}) {
   const nutritionFacts = Array.isArray(product.nutrition_facts)
     ? product.nutrition_facts.filter(
         (
@@ -88,6 +96,48 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
       selectedAddons.reduce((sum, addon) => sum + addon.price, 0),
     [product.base_price, selectedVariant?.price, selectedAddons]
   );
+  const frequentlyBoughtTogether = relatedProducts.slice(0, 2);
+  const completeTheCollection = relatedProducts.slice(2, 6);
+
+  const handleAddToCart = () => {
+    if (soldOut) {
+      toast.error("Sold out", {
+        description: "This item is currently unavailable."
+      });
+      return;
+    }
+
+    startTransition(() => {
+      const cartItem = {
+        productId: product.id,
+        slug: product.slug,
+        name: product.name,
+        image: selectedImage,
+        unitPrice:
+          (selectedVariant?.price ?? product.base_price) +
+          selectedAddons.reduce((sum, addon) => sum + addon.price, 0),
+        quantity,
+        variantId: selectedVariant?.id ?? null,
+        variantName: selectedVariant?.name ?? null,
+        variantQuantity: selectedVariant?.quantity ?? null,
+        customOptions: Object.fromEntries(
+          product.customOptions.optionGroups
+            .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
+            .filter(([, value]) => value)
+        ),
+        addons: selectedAddons.map((addon) => ({
+          id: addon.id,
+          name: addon.name,
+          price: addon.price
+        }))
+      };
+
+      addItem(cartItem);
+      toast.success("Added to cart", {
+        description: `${product.name} is in your cart.`
+      });
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -108,6 +158,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               <button
                 key={image.id}
                 type="button"
+                aria-label={`View ${image.alt_text ?? product.name} image`}
                 onClick={() =>
                   setSelectedImage(resolveImageUrl(image) ?? "/products/placeholder-elegance.svg")
                 }
@@ -264,6 +315,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               <div className="flex items-center gap-3">
                 <button
                   type="button"
+                  aria-label={`Decrease quantity for ${product.name}`}
                   className="h-10 w-10 rounded-full border border-border"
                   onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                 >
@@ -272,6 +324,7 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
                 <span className="w-6 text-center text-lg font-semibold">{quantity}</span>
                 <button
                   type="button"
+                  aria-label={`Increase quantity for ${product.name}`}
                   className="h-10 w-10 rounded-full border border-border"
                   onClick={() => setQuantity((current) => current + 1)}
                 >
@@ -285,47 +338,21 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
               size="lg"
               className="w-full"
               disabled={isPending || soldOut}
-              onClick={() =>
-                startTransition(() => {
-                  const cartItem = {
-                    productId: product.id,
-                    slug: product.slug,
-                    name: product.name,
-                    image: selectedImage,
-                    unitPrice:
-                      (selectedVariant?.price ?? product.base_price) +
-                      selectedAddons.reduce((sum, addon) => sum + addon.price, 0),
-                    quantity,
-                    variantId: selectedVariant?.id ?? null,
-                    variantName: selectedVariant?.name ?? null,
-                    variantQuantity: selectedVariant?.quantity ?? null,
-                    customOptions: Object.fromEntries(
-                      product.customOptions.optionGroups
-                        .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
-                        .filter(([, value]) => value)
-                    ),
-                    addons: selectedAddons.map((addon) => ({
-                      id: addon.id,
-                      name: addon.name,
-                      price: addon.price
-                    }))
-                  };
-
-                  addItem(cartItem);
-                  toast.success("Added to cart", {
-                    description: `Saved ${product.name} (${getCartItemKey(cartItem)}) to your cart.`
-                  });
-                })
-              }
+              onClick={handleAddToCart}
             >
               {soldOut ? "Sold out" : "Add to cart"}
             </Button>
             <div className="rounded-[1.25rem] border border-bakery-gold/20 bg-bakery-gold/10 p-4 text-sm text-bakery-espresso">
-              <p className="font-medium text-foreground">Secure checkout, local pickup, and delivery options</p>
+              <p className="font-medium text-foreground">Made fresh, gift-ready, and locally fulfilled</p>
               <p className="mt-1 text-muted-foreground">
-                Perfect for Killeen, Fort Hood, Harker Heights, Belton, Temple, birthdays,
-                teacher gifts, graduations, and custom sweet moments.
+                Handmade in Killeen for pickup and local delivery across Fort Cavazos, Harker Heights,
+                Copperas Cove, Belton, Temple, and Central Texas when available.
               </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-bakery-espresso">
+                <span>Premium chocolate</span>
+                <span>Made to order</span>
+                <span>Secure checkout</span>
+              </div>
             </div>
             {isCustomCakePopProduct ? (
               <Button asChild variant="outline" size="lg" className="w-full">
@@ -398,8 +425,59 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
           </p>
         </CardContent>
       </Card>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-bakery-gold/20 bg-white/95 p-3 shadow-[0_-14px_40px_rgba(95,74,65,0.12)] backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-md items-center gap-3">
+
+      {frequentlyBoughtTogether.length > 0 ? (
+        <Card className="overflow-hidden border-white/70 bg-white/85">
+          <CardContent className="grid gap-6 p-7 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+                Frequently bought together
+              </p>
+              <h2 className="mt-3 font-serif text-4xl text-foreground">
+                Add a little extra wow
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Pair this treat with another gift-ready favorite to build a fuller dessert box or event spread.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {frequentlyBoughtTogether.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/products/${item.slug}`}
+                  className="rounded-[1.5rem] border border-border/70 bg-white/85 p-4 transition hover:-translate-y-1 hover:shadow-card"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-bakery-gold">
+                    From {formatCurrency(item.base_price)}
+                  </p>
+                  <h3 className="mt-2 font-serif text-2xl text-foreground">{item.name}</h3>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                    {item.short_description ?? item.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {completeTheCollection.length > 0 ? (
+        <section className="space-y-6">
+          <SectionHeading
+            eyebrow="Complete the collection"
+            title="More sweets for the same celebration"
+            description="Round out birthdays, baby showers, graduations, corporate gifts, anniversaries, holidays, and custom dessert tables."
+          />
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {completeTheCollection.map((item) => (
+              <ProductCard key={item.id} product={item} ctaLabel="Complete the look" />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-bakery-gold/20 bg-white/95 p-3 shadow-[0_-14px_40px_rgba(95,74,65,0.12)] backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{product.name}</p>
             <p className="text-sm font-semibold text-bakery-rose">{formatCurrency(totalPrice)}</p>
@@ -407,43 +485,9 @@ export function ProductDetailClient({ product }: { product: ProductWithRelations
           <Button
             variant="gold"
             className="shrink-0 rounded-full"
-            disabled={isPending}
+            disabled={isPending || soldOut}
             aria-disabled={soldOut}
-            onClick={() =>
-              soldOut
-                ? toast.error("Sold out", {
-                    description: "This item is currently unavailable."
-                  })
-                :
-              startTransition(() => {
-                const cartItem = {
-                  productId: product.id,
-                  slug: product.slug,
-                  name: product.name,
-                  image: selectedImage,
-                  unitPrice:
-                    (selectedVariant?.price ?? product.base_price) +
-                    selectedAddons.reduce((sum, addon) => sum + addon.price, 0),
-                  quantity,
-                  variantId: selectedVariant?.id ?? null,
-                  variantName: selectedVariant?.name ?? null,
-                  variantQuantity: selectedVariant?.quantity ?? null,
-                  customOptions: Object.fromEntries(
-                    product.customOptions.optionGroups
-                      .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
-                      .filter(([, value]) => value)
-                  ),
-                  addons: selectedAddons.map((addon) => ({
-                    id: addon.id,
-                    name: addon.name,
-                    price: addon.price
-                  }))
-                };
-
-                addItem(cartItem);
-                toast.success("Added to cart");
-              })
-            }
+            onClick={handleAddToCart}
           >
             {soldOut ? "Sold out" : "Add to cart"}
           </Button>

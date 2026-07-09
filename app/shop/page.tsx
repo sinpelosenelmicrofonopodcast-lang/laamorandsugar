@@ -16,9 +16,9 @@ import { buildMetadata } from "@/lib/config/site";
 import type { CategoryRow } from "@/lib/types/app";
 
 export const metadata = buildMetadata({
-  title: "Shop",
+  title: "Shop Luxury Desserts in Killeen TX",
   description:
-    "Browse chocolate strawberries, cake pops, dessert boxes, and gift-ready treats made with love in Killeen, TX.",
+    "Shop chocolate covered strawberries, cake pops, dessert boxes, and gift-ready treats made fresh in Killeen, TX for pickup and local delivery.",
   path: "/shop"
 });
 
@@ -158,6 +158,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         eyebrow="Shop"
         title="Curated desserts for gifting and celebrations"
         description="Filter by category, search your favorites, and customize items directly from the product page."
+        as="h1"
       />
       <div className="mt-10">
         <CategoryShowcase categories={categories} products={products} />

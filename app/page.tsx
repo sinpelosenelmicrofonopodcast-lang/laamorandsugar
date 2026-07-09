@@ -145,7 +145,7 @@ const homeFaqs = [
   {
     question: "Do you offer local dessert delivery?",
     answer:
-      "Local delivery may be available in Killeen, Fort Hood, Harker Heights, Belton, Temple, and nearby areas depending on order date, distance, and availability."
+      "Local delivery may be available in Killeen, Fort Cavazos, Harker Heights, Copperas Cove, Belton, Temple, and nearby areas depending on order date, distance, and availability."
   },
   {
     question: "Can I customize a dessert gift?",
@@ -157,6 +157,15 @@ const homeFaqs = [
     answer:
       "Two to three days notice is recommended for handcrafted dessert gifts, especially around weekends, holidays, graduations, and teacher appreciation week."
   }
+];
+
+const premiumTrustSignals = [
+  "Military family owned",
+  "Puerto Rican owned",
+  "Made fresh to order",
+  "Premium chocolate",
+  "Pickup in Killeen",
+  "Delivery available"
 ];
 
 function BrandedGalleryPlaceholder({ label }: { label: string }) {
@@ -181,12 +190,9 @@ export async function generateMetadata() {
   const homeContent = homepage.content_json.home_content;
 
   return buildMetadata({
-    title:
-      homepage.seo_title ??
-      homeContent.hero.headline,
+    title: "Luxury Chocolate Covered Treats in Killeen TX",
     description:
-      homepage.seo_description ??
-      homeContent.hero.subheadline,
+      "Made-fresh chocolate covered strawberries, cake pops, dessert boxes, and custom treats for pickup and local delivery in Killeen, TX.",
     path: "/",
     image: homepage.hero_image_url ?? homepage.hero_mobile_image_url ?? undefined,
     imageAlt: homepage.hero_image_alt ?? homeContent.hero.headline
@@ -226,7 +232,18 @@ export default async function HomePage() {
     homepage.content_json.gallery.images.length > 0
       ? homepage.content_json.gallery.images
       : mapMediaAssetsToGallery(mediaAssets);
-  const homeContent = homepage.content_json.home_content;
+  const homeContent = {
+    ...homepage.content_json.home_content,
+    hero: {
+      ...homepage.content_json.home_content.hero,
+      headline: "Luxury Chocolate Covered Treats in Killeen, Texas",
+      subheadline:
+        "Made fresh for birthdays, weddings, baby showers, graduations, corporate gifts, anniversaries, holidays, and custom orders across Killeen and Central Texas.",
+      cta_primary: "Shop Best Sellers",
+      cta_secondary: "Custom Order",
+      chips: premiumTrustSignals
+    }
+  };
   const aboutLines = homeContent.about
     .split(/\n+/)
     .map((line) => line.trim())
@@ -632,7 +649,7 @@ export default async function HomePage() {
       <SectionHeading
         eyebrow="Dessert gifting FAQ"
         title="Sweet details before you order"
-        description="Helpful answers for Killeen, Fort Hood, and Central Texas customers planning chocolate covered strawberries, custom desserts, cake pops, treat boxes, and edible gifts."
+        description="Helpful answers for Killeen, Fort Cavazos, Harker Heights, Copperas Cove, Temple, Belton, and Central Texas customers planning chocolate covered strawberries, custom desserts, cake pops, treat boxes, and edible gifts."
         align="center"
         className="mx-auto max-w-3xl"
       />
@@ -719,6 +736,14 @@ export default async function HomePage() {
                     </div>
                   )
                 )}
+              </div>
+              <div className="mt-8 grid gap-3 text-sm font-semibold text-bakery-espresso sm:grid-cols-2">
+                <Link href="/reviews" className="rounded-2xl border border-bakery-gold/20 bg-bakery-gold/10 px-4 py-3 transition hover:bg-bakery-gold/15">
+                  Customer reviews
+                </Link>
+                <Link href="/faq" className="rounded-2xl border border-bakery-gold/20 bg-bakery-gold/10 px-4 py-3 transition hover:bg-bakery-gold/15">
+                  Freshness, pickup, and delivery FAQ
+                </Link>
               </div>
             </div>
           </div>

@@ -116,9 +116,9 @@ function cloneHomeContent(content: HomepageHomeContent): HomepageHomeContent {
 export const DEFAULT_HOMEPAGE_HOME_CONTENT: HomepageHomeContent = {
   hero: {
     eyebrow: "Luxury sweet gifting in Killeen, TX",
-    headline: "Gifts that make people say WOW before they even taste them.",
+    headline: "Luxury Chocolate Covered Treats in Killeen, Texas",
     subheadline:
-      "Luxury chocolate-covered strawberries, dessert boxes, edible arrangements, and custom treats made to impress every time.",
+      "Made-fresh chocolate covered strawberries, cake pops, dessert boxes, and custom treats for pickup and local delivery across Central Texas.",
     urgency: "Limited handcrafted availability this week. Orders require 2–3 days notice, and same-day availability may be limited.",
     cta_primary: "Order Now",
     cta_secondary: "Start Custom Order",
@@ -127,9 +127,10 @@ export const DEFAULT_HOMEPAGE_HOME_CONTENT: HomepageHomeContent = {
     image_badge: "Luxury gifting",
     image_title: "Dessert gifts that look unforgettable before the first bite.",
     chips: [
+      "Made fresh",
+      "Local pickup",
+      "Delivery available",
       "Chocolate-covered strawberries",
-      "Dessert boxes",
-      "Edible arrangements",
       "Custom orders"
     ],
     reserve_card_title: "Limited handcrafted availability",
@@ -560,10 +561,10 @@ export function normalizeHomepageContent(row: HomepageContentRow): HomepageConte
     banner_cta_label: row.banner_cta_label ?? null,
     banner_cta_href: row.banner_cta_href ?? null,
     seo_title:
-      row.seo_title ?? "L&A Amor & Sugar | Custom Desserts & Sweet Treats in Killeen, TX",
+      row.seo_title ?? "Luxury Chocolate Covered Treats in Killeen TX | L&A Amor & Sugar",
     seo_description:
       row.seo_description ??
-      "Custom desserts, chocolate-covered strawberries, cake pops, dessert boxes, and seasonal treats made with love in Killeen, TX. Order online or request a custom treat box.",
+      "Made-fresh chocolate covered strawberries, cake pops, dessert boxes, and custom treats for pickup and local delivery in Killeen, TX.",
     hero_eyebrow: row.hero_eyebrow ?? contentJson.home_content.hero.eyebrow,
     hero_title: row.hero_title ?? contentJson.home_content.hero.headline,
     hero_description: row.hero_description ?? contentJson.home_content.hero.subheadline,

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ProductDetailClient } from "@/components/site/product-detail-client";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
-import { getProductBySlug } from "@/lib/data/queries";
+import { getProductBySlug, getProducts } from "@/lib/data/queries";
 import { buildMetadata } from "@/lib/config/site";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo";
 import { resolveImageUrl } from "@/lib/utils";
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: ProductDetailPageProps) {
   }
 
   return buildMetadata({
-    title: `${product.name} | Luxury Dessert Gifts in Killeen TX`,
+    title: `${product.name} in Killeen TX`,
     description:
       product.short_description ??
       `${product.name} from L&A Amor & Sugar is a luxury custom dessert gift in Killeen, TX. Order for birthdays, teachers, Fort Hood gifts, graduations, events, and local dessert delivery.`,
@@ -50,6 +50,16 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   if (!product) {
     notFound();
   }
+
+  const relatedProducts = (await getProducts())
+    .filter((item) => item.id !== product.id)
+    .filter(
+      (item) =>
+        item.categories?.id === product.categories?.id ||
+        item.featured ||
+        item.seasonal
+    )
+    .slice(0, 6);
 
   return (
     <>
@@ -74,7 +84,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           description={product.short_description ?? getProductDescription(product)}
         />
         <div className="mt-10">
-          <ProductDetailClient product={product} />
+          <ProductDetailClient product={product} relatedProducts={relatedProducts} />
         </div>
       </div>
     </>

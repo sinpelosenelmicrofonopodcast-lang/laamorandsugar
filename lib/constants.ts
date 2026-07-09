@@ -42,13 +42,13 @@ export const DEFAULT_HOMEPAGE_CONTENT = {
   banner_text: "Custom sweets made with love in Killeen, TX",
   banner_cta_label: "Start a custom order",
   banner_cta_href: "/custom-orders",
-  seo_title: "Gifts that make people say WOW before they even taste them. | L&A Amor & Sugar",
+  seo_title: "Luxury Chocolate Covered Treats in Killeen TX | L&A Amor & Sugar",
   seo_description:
-    "Luxury chocolate-covered strawberries, dessert boxes, and edible arrangements made to impress every time. Pickup and delivery available in Killeen, TX.",
+    "Made-fresh chocolate covered strawberries, cake pops, dessert boxes, and custom treats for pickup and local delivery in Killeen, TX.",
   hero_eyebrow: "Luxury sweet gifting in Killeen, TX",
-  hero_title: "Gifts that make people say WOW before they even taste them.",
+  hero_title: "Luxury Chocolate Covered Treats in Killeen, Texas",
   hero_description:
-    "Luxury chocolate-covered strawberries, dessert boxes, and edible arrangements made to impress every time.",
+    "Made-fresh chocolate covered strawberries, cake pops, dessert boxes, and custom treats for pickup and local delivery across Central Texas.",
   hero_primary_cta_label: "Order Now",
   hero_primary_cta_href: "/shop",
   hero_secondary_cta_label: "Start Custom Order",

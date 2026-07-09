@@ -59,8 +59,9 @@ const faqs = [
 ];
 
 export const metadata = buildMetadata({
-  title: "FAQ",
-  description: "Common questions about ordering, custom requests, pickup, and delivery.",
+  title: "Dessert Order FAQ",
+  description:
+    "Answers about custom dessert orders, pickup, local delivery, freshness, allergens, and timing for L&A Amor & Sugar in Killeen, TX.",
   path: "/faq"
 });
 
@@ -79,6 +80,7 @@ export default function FaqPage() {
           eyebrow="FAQ"
           title="Frequently Asked Questions"
           description="Everything you need to know before placing your sweet order."
+          as="h1"
         />
         <div className="mt-10 grid gap-4 sm:gap-5">
           {faqs.map((faq) => (

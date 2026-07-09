@@ -236,7 +236,7 @@ const highlights = [
 export const metadata = buildMetadata({
   title: "Order Policies",
   description:
-    "Review L&A Amor & Sugar order, allergen, cancellation, custom design, privacy, and website policies before placing an order.",
+    "Review L&A Amor & Sugar order policies for custom desserts, pickup, local delivery, cancellations, allergens, and event treats.",
   path: "/policies"
 });
 
@@ -259,6 +259,7 @@ export default function PoliciesPage() {
               eyebrow="Policies"
               title="Order Policies & Terms"
               description="Please review these policies before placing an order with L&A Amor & Sugar."
+              as="h1"
             />
             <div className="mt-8 grid gap-3">
               {highlights.map((highlight) => {

@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           "/*.json$",
           "/reset-password",
           "/forgot-password",
+          "/order-status",
           "/order-status/"
         ]
       }

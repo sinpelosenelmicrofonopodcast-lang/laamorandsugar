@@ -7,8 +7,9 @@ import { buildMetadata } from "@/lib/config/site";
 import { getWhatsAppHref } from "@/lib/whatsapp";
 
 export const metadata = buildMetadata({
-  title: "Contact",
-  description: "Get in touch with L&A Amor & Sugar Co. for questions, pickup, delivery, and custom requests.",
+  title: "Contact L&A Amor & Sugar",
+  description:
+    "Contact L&A Amor & Sugar in Killeen, TX for custom dessert orders, pickup, local delivery, and event treat questions.",
   path: "/contact"
 });
 
@@ -22,6 +23,7 @@ export default async function ContactPage() {
         eyebrow="Contact"
         title="Let’s plan your next sweet moment"
         description="Use the custom order form for event requests, or contact us directly for order questions and general support."
+        as="h1"
       />
       <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {[

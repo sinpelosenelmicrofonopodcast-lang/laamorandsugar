@@ -41,6 +41,13 @@ function getCollectionDescription(category: CategoryRow | undefined) {
   );
 }
 
+function getCollectionMetaDescription(category: CategoryRow | undefined) {
+  const fallback = `Shop ${category?.name ?? "luxury dessert gifts"} in Killeen, TX with made-fresh treats for pickup, local delivery, gifts, and celebrations.`;
+  const description = category?.description?.trim() || fallback;
+
+  return description.length > 155 ? `${description.slice(0, 152).trimEnd()}...` : description;
+}
+
 export async function generateMetadata({ params }: CollectionPageProps) {
   const { slug } = await params;
   const categories = await getCategories();
@@ -58,7 +65,7 @@ export async function generateMetadata({ params }: CollectionPageProps) {
 
   return buildMetadata({
     title: `${category.name} in Killeen TX`,
-    description: getCollectionDescription(category),
+    description: getCollectionMetaDescription(category),
     path: `/collections/${cleanSlug}`
   });
 }

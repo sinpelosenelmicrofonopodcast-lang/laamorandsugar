@@ -5,8 +5,9 @@ import { buildMetadata } from "@/lib/config/site";
 import type { TestimonialRow } from "@/lib/types/app";
 
 export const metadata = buildMetadata({
-  title: "Reviews",
-  description: "Read what customers are saying about L&A Amor & Sugar Co.",
+  title: "Customer Reviews",
+  description:
+    "Read customer reviews for L&A Amor & Sugar, a Killeen, TX dessert brand for custom treats, gift boxes, and celebration sweets.",
   path: "/reviews"
 });
 
@@ -19,6 +20,7 @@ export default async function ReviewsPage() {
         eyebrow="Reviews"
         title="Client love letters, one dessert table at a time"
         description="Sweet notes from customers who trusted us with birthdays, gifts, events, and custom dessert moments."
+        as="h1"
       />
       <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {testimonials.map((testimonial: TestimonialRow) => (

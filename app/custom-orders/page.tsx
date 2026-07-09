@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buildMetadata } from "@/lib/config/site";
 
 export const metadata = buildMetadata({
-  title: "Custom Orders",
+  title: "Custom Dessert Orders in Killeen TX",
   description:
-    "Request custom dessert boxes, strawberries, cake pops, and celebration treats styled for your event in Killeen, TX.",
+    "Request custom dessert boxes, chocolate covered strawberries, cake pops, and event treats made fresh in Killeen, TX.",
   path: "/custom-orders"
 });
 
@@ -19,6 +19,7 @@ export default function CustomOrdersPage() {
             eyebrow="Bespoke Treats"
             title="Custom sweets designed around your event"
             description="Share your inspiration, date, quantity, budget, and colors. Upload a reference image and we will follow up with a personalized quote."
+            as="h1"
           />
           <div className="grid gap-4">
             {[

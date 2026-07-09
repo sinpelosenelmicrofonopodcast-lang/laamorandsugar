@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import type { ProductWithRelations } from "@/lib/types/app";
 import type { CartItem } from "@/lib/store/cart-store";
 import { getCartItemKey, useCartStore } from "@/lib/store/cart-store";
 import { formatCurrency } from "@/lib/utils";
+import { ProductCard } from "@/components/site/product-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,7 +28,11 @@ function formatCustomOption(label: string, value: string) {
   return `${labels[label] ?? label}: ${value}`;
 }
 
-export function CartView() {
+export function CartView({
+  recommendedProducts = []
+}: {
+  recommendedProducts?: ProductWithRelations[];
+}) {
   const searchParams = useSearchParams();
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -80,6 +86,7 @@ export function CartView() {
   }
 
   return (
+    <div className="space-y-10">
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       {isRecovering ? (
         <div className="rounded-[1.5rem] border border-bakery-gold/20 bg-bakery-gold/10 p-4 text-sm text-bakery-espresso lg:col-span-2">
@@ -195,8 +202,45 @@ export function CartView() {
           <Button asChild variant="gold" size="lg" className="w-full">
             <Link href="/checkout">Proceed to checkout</Link>
           </Button>
+          <div className="grid gap-3 text-sm text-muted-foreground">
+            {[
+              "Made fresh to order",
+              "Gift packaging and personalization available on custom orders",
+              "Pickup and local delivery options for Killeen and nearby Central Texas"
+            ].map((item) => (
+              <div key={item} className="rounded-2xl border border-bakery-gold/20 bg-bakery-gold/10 px-4 py-3 text-bakery-espresso">
+                {item}
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
+    </div>
+    <section className="rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-card">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-bakery-gold">
+            Complete your order
+          </p>
+          <h2 className="mt-2 font-serif text-4xl text-foreground">
+            Add a sweet finishing touch
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+            Cake pops, Oreos, cakesicles, Rice Krispies, strawberries, and dessert boxes pair beautifully with gift orders and dessert tables.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/custom-orders">Add personalization</Link>
+        </Button>
+      </div>
+      {recommendedProducts.length > 0 ? (
+        <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {recommendedProducts.map((product) => (
+            <ProductCard key={product.id} product={product} ctaLabel="Add this sweet" />
+          ))}
+        </div>
+      ) : null}
+    </section>
     </div>
   );
 }
