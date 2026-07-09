@@ -68,6 +68,49 @@ const deliveryZonesSchema = z.preprocess((value) => {
   ])
 ).max(40).nullable().optional());
 
+function emptyStringToNull(value: unknown) {
+  return typeof value === "string" && value.trim() === "" ? null : value;
+}
+
+function isBlankText(value: unknown) {
+  return typeof value !== "string" || value.trim().length === 0;
+}
+
+function filterBlankNutritionFacts(value: unknown) {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.filter((fact) => {
+    if (!fact || typeof fact !== "object") {
+      return true;
+    }
+
+    const record = fact as Record<string, unknown>;
+    return !(
+      isBlankText(record.label) &&
+      isBlankText(record.value) &&
+      isBlankText(record.daily_value)
+    );
+  });
+}
+
+function filterBlankAddons(value: unknown) {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.filter((addon) => {
+    if (!addon || typeof addon !== "object") {
+      return true;
+    }
+
+    const record = addon as Record<string, unknown>;
+    const price = Number(record.price ?? 0);
+    return !(isBlankText(record.name) && isBlankText(record.description) && price === 0);
+  });
+}
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8)
@@ -132,7 +175,7 @@ export const categorySchema = z.object({
 
 export const productVariantSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1).max(80),
+  name: z.string().min(1, "Add a variant name.").max(80),
   quantity: z.coerce.number().int().min(1),
   price: z.coerce.number().positive(),
   stock_quantity: z.coerce.number().int().min(0).nullable().optional(),
@@ -142,7 +185,7 @@ export const productVariantSchema = z.object({
 
 export const productAddonSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1).max(80),
+  name: z.string().min(1, "Add an add-on name.").max(80),
   description: z.string().max(180).optional().nullable(),
   price: z.coerce.number().min(0).default(0),
   is_active: z.boolean().default(true),
@@ -151,7 +194,7 @@ export const productAddonSchema = z.object({
 
 export const productImageSchema = z.object({
   id: z.string().uuid().optional(),
-  image_url: z.string().min(1),
+  image_url: z.string().min(1, "Add an image URL or upload an image."),
   alt_text: z.string().max(120).optional().nullable(),
   sort_order: z.coerce.number().int().min(0).default(0),
   is_primary: z.boolean().default(false)
@@ -159,29 +202,32 @@ export const productImageSchema = z.object({
 
 export const nutritionFactSchema = z.object({
   id: z.string().optional(),
-  label: z.string().min(1).max(80),
-  value: z.string().min(1).max(80),
+  label: z.string().min(1, "Add a nutrition fact label.").max(80),
+  value: z.string().min(1, "Add a nutrition fact value.").max(80),
   daily_value: z.string().max(40).optional().nullable(),
   sort_order: z.coerce.number().int().min(0).default(0)
 });
 
 export const customOptionGroupSchema = z.object({
   id: z.string().max(80).optional(),
-  label: z.string().min(1).max(80),
+  label: z.string().min(1, "Add an option group name.").max(80),
   values: z.array(z.string().max(80)).default([])
 });
 
 export const productSchema = z.object({
   id: z.string().uuid().optional(),
-  category_id: z.string().uuid().optional().nullable(),
-  name: z.string().min(2).max(120),
-  slug: z.string().min(2).max(140),
+  category_id: z.preprocess(emptyStringToNull, z.string().uuid().optional().nullable()),
+  name: z.string().min(2, "Add a product name.").max(120),
+  slug: z.string().min(2, "Add a product slug.").max(140),
   short_description: z.string().max(240).optional().nullable(),
-  description: z.string().min(20).max(5000),
+  description: z.string().min(20, "Add a product description with at least 20 characters.").max(5000),
   sku: z.string().max(60).optional().nullable(),
   nutrition_serving_size: z.string().max(80).optional().nullable(),
   nutrition_servings_per_container: z.string().max(80).optional().nullable(),
-  nutrition_facts: z.array(nutritionFactSchema).default([]),
+  nutrition_facts: z.preprocess(
+    filterBlankNutritionFacts,
+    z.array(nutritionFactSchema).default([])
+  ),
   allergen_statement: z.string().max(240).optional().nullable(),
   hasCustomOptions: z.boolean().default(false),
   customOptions: z.object({
@@ -204,10 +250,10 @@ export const productSchema = z.object({
   active: z.boolean().default(true),
   images: z
     .array(productImageSchema)
-    .min(1, "At least 1 image is required")
+    .min(1, "Add at least 1 product image.")
     .max(3, "Maximum 3 images per product"),
-  variants: z.array(productVariantSchema).min(1, "At least 1 variant is required"),
-  addons: z.array(productAddonSchema).default([])
+  variants: z.array(productVariantSchema).min(1, "Add at least 1 product variant."),
+  addons: z.preprocess(filterBlankAddons, z.array(productAddonSchema).default([]))
 }).superRefine((value, ctx) => {
   const primaryImages = value.images.filter((image) => image.is_primary).length;
   const defaultVariants = value.variants.filter((variant) => variant.is_default).length;
