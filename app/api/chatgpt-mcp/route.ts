@@ -48,11 +48,13 @@ async function callTool(name:string,args:Record<string,unknown>) {
     for(const key of keys) if(args[key]!==undefined) patch[key]=args[key];
     for(const key of ["name","slug","short_description","description"]) if(patch[key]!==undefined && !textVal(patch[key], key==="description"?10000:500)) throw Error("Invalid "+key);
     if(patch.category_id!==undefined && !uuid(patch.category_id)) throw Error("Invalid category_id");
-    if(patch.base_price!==undefined && (typeof patch.base_price!=="number"||!Number.isFinite(patch.base_price)||patch.base_price<0)) throw Error("Invalid price");
+    if(patch.base_price!==undefined && (typeof patch.base_price!=="number"||!Number.isFinite(patch.base_price)||Number(patch.base_price)<0)) throw Error("Invalid price");
+    if (patch.status!==undefined && !["active","draft","archived"].includes(String(patch.status))) throw Error("Invalid status");
+    for(const key of ["active","seasonal","featured"]) if(patch[key]!==undefined && typeof patch[key]!=="boolean") throw Error("Invalid "+key);
     if (args.id && !uuid(args.id)) throw Error("Invalid product id");
     if (!args.id && (!patch.name||!patch.slug||patch.base_price===undefined)) throw Error("Name, slug and price required.");
     if (!args.id){ patch.status="draft"; patch.active=false; }
-    const query = args.id ? db.from("products").update(patch).eq("id",args.id as string) : db.from("products").insert(patch as never);
+    const query = args.id ? db.from("products").update(patch as never).eq("id",args.id as string) : db.from("products").insert(patch as never);
     const {data,error}=await query.select("id,name,slug,status,active").single();
     if(error) throw Error(error.message);
     return data;
@@ -64,7 +66,7 @@ async function callTool(name:string,args:Record<string,unknown>) {
     if(args.id && !uuid(args.id)) throw Error("Invalid category id");
     for(const k of ["name","slug","description","image_url"]) if(patch[k]!==undefined && !textVal(patch[k], k==="description"?3000:800)) throw Error("Invalid "+k);
     if(!args.id && (!patch.name||!patch.slug)) throw Error("Name and slug required");
-    if(patch.sort_order!==undefined && (!Number.isInteger(patch.sort_order)||Number(patch.sort_order)<0)) throw Error("Invalid sort order");
+    if(patch.sort_order!==undefined && (!Number.isInteger(Number(patch.sort_order))||Number(patch.sort_order)<0)) throw Error("Invalid sort order");
     const q=args.id ? db.from("categories").update(patch).eq("id",args.id as string) : db.from("categories").insert(patch as never);
     const {data,error}=await q.select("*").single();if(error)throw Error(error.message);return data;
   }
