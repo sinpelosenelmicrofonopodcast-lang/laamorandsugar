@@ -112,7 +112,9 @@ export function buildProductJsonLd(product: ProductWithRelations) {
       itemCondition: "https://schema.org/NewCondition",
       seller: {
         "@type": "Organization",
-        name: "L&A Amor & Sugar"
+        name: "L&A Amor & Sugar",
+        url: absoluteUrl("/"),
+        logo: absoluteUrl("/brand/la-logo-official.png")
       },
       priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
         .toISOString()
