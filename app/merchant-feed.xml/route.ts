@@ -45,8 +45,6 @@ export async function GET() {
       <g:identifier_exists>false</g:identifier_exists>
       <g:google_product_category>Food, Beverages &amp; Tobacco &gt; Food Items &gt; Bakery</g:google_product_category>
       <g:product_type>${escapeXml(cleanMerchantText(product.categories?.name ?? "Luxury dessert gifts"))}</g:product_type>
-      <g:pickup_method>buy</g:pickup_method>
-      <g:pickup_sla>multi-day</g:pickup_sla>
     </item>`;
   });
 
