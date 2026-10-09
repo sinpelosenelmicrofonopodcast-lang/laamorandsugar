@@ -108,15 +108,14 @@ export async function POST(request:Request) {
   const data=await request.json().catch(()=>null);
   if(!data||data.jsonrpc!=="2.0"||typeof data.method!=="string")return failure(null,-32600,"Invalid request",400);
   const id=data.id??null;
+  if(!await authorized(request))return NextResponse.json({jsonrpc:"2.0",id,error:{code:-32001,message:"Authentication required"}},{status:401,headers:{"WWW-Authenticate":'Bearer resource_metadata="https://amorandsugarla.com/api/chatgpt-mcp/oauth-protected-resource"',"Cache-Control":"no-store"}});
   if(data.method==="initialize")return rpc(id,{protocolVersion:"2025-06-18",capabilities:{tools:{}},serverInfo:{name:"amor-sugar-catalog",version:"0.1.0"}});
   if(data.method==="notifications/initialized")return new Response(null,{status:202});
   if(data.method==="ping")return rpc(id,{});
   if(data.method==="tools/list"){
-    if(!await authorized(request))return failure(id,-32001,"Unauthorized",401);
     return rpc(id,{tools:METHODS});
   }
   if(data.method==="tools/call"){
-    if(!await authorized(request))return failure(id,-32001,"Unauthorized",401);
     const name=data.params?.name,args=data.params?.arguments??{};
     if(!METHODS.some(x=>x.name===name))return failure(id,-32602,"Unknown tool");
     if(!args||Array.isArray(args)||typeof args!=="object")return failure(id,-32602,"Invalid arguments");
