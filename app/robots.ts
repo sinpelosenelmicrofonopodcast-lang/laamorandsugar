@@ -30,8 +30,7 @@ export default function robots(): MetadataRoute.Robots {
       new URL("/sitemap.xml", siteConfig.url).toString(),
       new URL("/product-sitemap.xml", siteConfig.url).toString(),
       new URL("/image-sitemap.xml", siteConfig.url).toString(),
-      new URL("/category-sitemap.xml", siteConfig.url).toString(),
-      new URL("/merchant-feed.xml", siteConfig.url).toString()
+      new URL("/category-sitemap.xml", siteConfig.url).toString()
     ],
     host: siteConfig.url
   };
