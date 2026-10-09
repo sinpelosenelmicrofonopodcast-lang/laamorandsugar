@@ -9,7 +9,8 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const CSRF_EXEMPT_PATHS = new Set([
   "/api/stripe/webhook",
   "/api/marketing/automation",
-  "/api/social/automation"
+  "/api/social/automation",
+  "/api/chatgpt-mcp"
 ]);
 const CASE_SENSITIVE_REDIRECTS = new Map([
   ["/collections/Cake-Pops", "/collections/cake-pops"],
@@ -93,7 +94,8 @@ export async function middleware(request: NextRequest) {
     MUTATING_METHODS.has(request.method.toUpperCase()) &&
     pathname.startsWith("/api/") &&
     isLikelyBot(request.headers.get("user-agent")) &&
-    !pathname.startsWith("/api/analytics")
+    !pathname.startsWith("/api/analytics") &&
+    !pathname.startsWith("/api/chatgpt-mcp")
   ) {
     return withSecurityHeaders(
       NextResponse.json({ error: "Request blocked." }, { status: 403 })
