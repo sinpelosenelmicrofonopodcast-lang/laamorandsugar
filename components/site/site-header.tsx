@@ -51,8 +51,8 @@ export function SiteHeader({
           ) : null}
         </div>
       ) : null}
-      <div className="container flex min-h-28 items-center justify-between gap-6 py-3">
-        <BrandMark />
+      <div className="container flex min-h-20 items-center justify-between gap-2 py-2 sm:min-h-24 sm:gap-4">
+        <BrandMark className="min-w-0 flex-1 sm:flex-none" />
         <nav className="hidden items-center gap-7 lg:flex">
           {navigation.map((item) => (
             <Link
@@ -70,7 +70,7 @@ export function SiteHeader({
             My Orders
           </Link>
         </nav>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           <CartButton />
           {currentUser ? (
             <>
@@ -95,24 +95,18 @@ export function SiteHeader({
           )}
         </div>
       </div>
-      <nav
-        aria-label="Mobile navigation"
-        className="container flex gap-3 overflow-x-auto border-t border-white/60 py-3 text-sm font-medium text-muted-foreground lg:hidden"
-      >
-        {[
-          ...navigation,
-          { href: "/order-status" as Route, label: "My Orders" },
-          ...(currentUser ? [] : [{ href: "/account/login" as Route, label: "Sign in" }])
-        ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="shrink-0 rounded-full bg-white/72 px-4 py-2 transition hover:bg-bakery-champagne/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bakery-rose/40"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <details className="group relative border-t border-white/60 lg:hidden">
+        <summary className="container flex cursor-pointer list-none items-center justify-between py-3 text-sm font-semibold text-bakery-espresso [&::-webkit-details-marker]:hidden">
+          <span>Menu</span><span aria-hidden="true" className="text-xl">☰</span>
+        </summary>
+        <nav aria-label="Mobile navigation" className="container grid max-h-[min(65dvh,32rem)] grid-cols-2 gap-2 overflow-y-auto overscroll-contain pb-4">
+          {[...navigation, { href: "/order-status" as Route, label: "My Orders" }, ...(currentUser ? [] : [{ href: "/account/login" as Route, label: "Sign in" }])].map((item) => (
+            <Link key={item.href} href={item.href} className="rounded-xl bg-white/90 px-3 py-3 text-sm font-medium text-bakery-espresso shadow-sm focus-visible:ring-2 focus-visible:ring-bakery-rose/40">
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </details>
     </header>
   );
 }
