@@ -15,7 +15,7 @@ export function BrandMark({
       <div
         className={cn(
           "relative overflow-hidden",
-          compact ? "h-[4.25rem] w-[11rem] sm:w-[12.5rem]" : "h-[5.75rem] w-[15rem] sm:h-[6.5rem] sm:w-[18rem]"
+          compact ? "h-[4.25rem] w-[11rem] sm:w-[12.5rem]" : "h-14 w-[min(42vw,10rem)] sm:h-20 sm:w-[15rem] md:h-[6.5rem] md:w-[18rem]"
         )}
       >
         <Image
