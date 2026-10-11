@@ -24,6 +24,13 @@ export function TawkToScript() {
 
       loaded = true;
       window.Tawk_API = window.Tawk_API || {};
+      window.Tawk_API.onLoad = () => {
+        const api = window.Tawk_API as { minimize?: () => void; hideWidget?: () => void };
+        if (window.matchMedia("(max-width: 767px)").matches) {
+          api.minimize?.();
+          api.hideWidget?.();
+        }
+      };
       window.Tawk_LoadStart = new Date();
 
       const script = document.createElement("script");
