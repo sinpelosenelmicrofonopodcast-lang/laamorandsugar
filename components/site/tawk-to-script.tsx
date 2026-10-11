@@ -13,6 +13,8 @@ declare global {
 
 export function TawkToScript() {
   useEffect(() => {
+    // Keep third-party chat off small screens where it blocks checkout and navigation.
+    if (window.matchMedia("(max-width: 767px)").matches) return;
     let loaded = false;
     let timeoutId: number | null = null;
 
