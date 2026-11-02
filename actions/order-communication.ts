@@ -1,6 +1,7 @@
 "use server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -126,7 +127,7 @@ export async function lookupOrderStatusAction(input: unknown) {
   }
 
   // Next.js redirects throw internally; never swallow them in a catch block.
-  redirect(destination);
+  redirect(destination as Route);
 }
 
 export async function sendCustomerOrderMessageAction(input: unknown) {
