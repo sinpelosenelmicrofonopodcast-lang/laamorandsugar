@@ -139,7 +139,11 @@ export function ProductDetailClient({
         quantity,
         variantId: selectedVariant?.id ?? null,
         variantName: selectedVariant?.name ?? null,
-        variantQuantity: selectedVariant?.quantity ?? null,
+        // A platter range is not a fixed number of pieces. Keep its full
+        // range in variantName rather than showing a misleading "8 pcs".
+        variantQuantity: selectedVariant?.option_value && /\\d+\\s*[-–]\\s*\\d+/.test(selectedVariant.option_value)
+          ? null
+          : selectedVariant?.quantity ?? null,
         customOptions: Object.fromEntries(
           product.customOptions.optionGroups
             .map((group) => [group.label, selectedCustomOptions[group.id]] as const)
