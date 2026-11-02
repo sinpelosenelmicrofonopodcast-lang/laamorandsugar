@@ -36,6 +36,9 @@ export function CustomerOrderStatusView({
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [uploadTurnstileToken, setUploadTurnstileToken] = useState("");
+  const [uploadChallengeVersion, setUploadChallengeVersion] = useState(0);
+  const turnstileConfigured = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const orderStatus = deriveCustomerOrderStatus({
     order_status: order.order_status,
     status: order.status,
@@ -56,13 +59,18 @@ export function CustomerOrderStatusView({
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const onUploadAttachment = async (file: File) => {
+    if (turnstileConfigured && !uploadTurnstileToken) {
+      toast.error("Please complete the attachment verification first.");
+      return;
+    }
     setIsUploading(true);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("purpose", "order-message");
-      formData.append("turnstileToken", turnstileToken);
+      formData.append("orderToken", orderToken);
+      formData.append("turnstileToken", uploadTurnstileToken);
       const response = await fetch("/api/media/upload", {
         method: "POST",
         body: formData
@@ -75,6 +83,8 @@ export function CustomerOrderStatusView({
 
       setAttachmentUrl(result.url);
       toast.success("Attachment uploaded.");
+      setUploadTurnstileToken("");
+      setUploadChallengeVersion((version) => version + 1);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Upload failed.");
     } finally {
@@ -260,6 +270,11 @@ export function CustomerOrderStatusView({
                         void onUploadAttachment(file);
                       }
                     }}
+                  />
+                  <TurnstileWidget
+                    key={uploadChallengeVersion}
+                    action="customer_message"
+                    onVerify={setUploadTurnstileToken}
                   />
                   {attachmentUrl ? (
                     <a
