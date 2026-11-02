@@ -73,8 +73,7 @@ export function resolveVariantQuantity(
   }
 
   const optionValue = typeof variant?.option_value === "string" ? variant.option_value : "";
-  const digits = optionValue.replace(/\D/g, "");
-  const parsed = Number(digits);
+  // Read the first quantity, not every digit joined together.\n  // Example: "8-12 pcs" means a range, not 812 pieces.\n  const match = optionValue.match(/\b\d+\b/);\n  const parsed = match ? Number(match[0]) : 0;
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
