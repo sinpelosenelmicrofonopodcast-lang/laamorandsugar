@@ -244,7 +244,9 @@ export function ProductDetailClient({
                     >
                       <div className="flex items-center justify-between gap-4">
                         <span className="font-medium text-foreground">
-                          {variant.name} ({variant.quantity} pcs)
+                          {variant.name.toLowerCase().includes("pieces") || variant.name.toLowerCase().includes("pcs")
+                            ? variant.name
+                            : `${variant.name} (${variant.option_value || `${variant.quantity} pcs`})`}
                         </span>
                         <span className="text-sm font-medium text-bakery-rose">
                           {formatCurrency(variant.price)}
