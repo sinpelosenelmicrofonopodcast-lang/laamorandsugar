@@ -27,6 +27,17 @@ export async function verifyTurnstileToken(input: {
   headers?: Headers;
   expectedAction?: string;
 }) {
+  // Checkout is authenticated and independently rate-limited. Do not block
+  // those orders when Turnstile has not been provisioned at all. Keep
+  // verification mandatory for every other action and for configured sites.
+  if (
+    input.expectedAction === "checkout" &&
+    !SECURITY.turnstileSecretKey &&
+    !SECURITY.turnstileSiteKey
+  ) {
+    return { success: true, skipped: true, error: null };
+  }
+
   if (!SECURITY.turnstileSecretKey) {
     return {
       success: !isProduction(),
