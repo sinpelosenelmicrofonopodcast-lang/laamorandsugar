@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 
-import { getCurrentUserRole } from "@/lib/auth";
+import { getCurrentUser, getCurrentUserRole } from "@/lib/auth";
 import { DEFAULT_BUCKET } from "@/lib/constants";
 import { logSuspiciousActivity } from "@/lib/security/audit";
 import { checkRateLimit } from "@/lib/security/rate-limit";
@@ -89,10 +89,45 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
       }
     } else {
+      if (purpose === "order-message") {
+        // Files attached to a private order require proof of access to that order,
+        // not just an upload purpose supplied by the browser.
+        const orderToken = ((formData.get("orderToken") as string | null) ?? "").trim();
+        if (!orderToken || orderToken.length > 256) {
+          return NextResponse.json({ error: "Missing order access token." }, { status: 400 });
+        }
+
+        const supabase = createAdminClient() as any;
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .select("id,user_id")
+          .eq("order_access_token", orderToken)
+          .maybeSingle();
+
+        if (orderError || !order) {
+          return NextResponse.json({ error: "Order not found." }, { status: 404 });
+        }
+
+        if (order.user_id) {
+          const [user, role] = await Promise.all([getCurrentUser(), getCurrentUserRole()]);
+          if (
+            !user ||
+            (user.id !== order.user_id && role !== "admin" && role !== "staff")
+          ) {
+            return NextResponse.json({ error: "Unauthorized order attachment." }, { status: 403 });
+          }
+        }
+      }
+
       const turnstile = await verifyTurnstileToken({
         token: (formData.get("turnstileToken") as string | null) ?? "",
         headers: request.headers,
-        expectedAction: purpose === "custom-order" ? "custom_order" : "upload"
+        expectedAction:
+          purpose === "custom-order"
+            ? "custom_order"
+            : purpose === "order-message"
+              ? "customer_message"
+              : "upload"
       });
 
       if (!turnstile.success) {
