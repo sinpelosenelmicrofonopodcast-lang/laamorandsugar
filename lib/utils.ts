@@ -73,7 +73,10 @@ export function resolveVariantQuantity(
   }
 
   const optionValue = typeof variant?.option_value === "string" ? variant.option_value : "";
-  // Read the first quantity, not every digit joined together.\n  // Example: "8-12 pcs" means a range, not 812 pieces.\n  const match = optionValue.match(/\b\d+\b/);\n  const parsed = match ? Number(match[0]) : 0;
+  // Parse the first number of a range rather than concatenating all digits.
+  // "8-12 pcs" represents 8 to 12 pieces, not 812.
+  const match = optionValue.match(/\d+/);
+  const parsed = match ? Number(match[0]) : 0;
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
