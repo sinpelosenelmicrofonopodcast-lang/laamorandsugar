@@ -27,13 +27,14 @@ export async function verifyTurnstileToken(input: {
   headers?: Headers;
   expectedAction?: string;
 }) {
-  // Checkout is authenticated and independently rate-limited. Do not block
-  // those orders when Turnstile has not been provisioned at all. Keep
-  // verification mandatory for every other action and for configured sites.
+  // When neither Turnstile key is installed, allow only the protected
+  // checkout/order-lookup/messaging flows. Each caller still enforces its
+  // own rate limit and order ownership or unguessable access token checks.
+  // If Turnstile is ever configured, verification is always mandatory.
   if (
-    input.expectedAction === "checkout" &&
     !SECURITY.turnstileSecretKey &&
-    !SECURITY.turnstileSiteKey
+    !SECURITY.turnstileSiteKey &&
+    ["checkout", "order_lookup", "customer_message"].includes(input.expectedAction ?? "")
   ) {
     return { success: true, skipped: true, error: null };
   }
