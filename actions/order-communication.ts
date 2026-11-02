@@ -59,6 +59,7 @@ async function canCurrentUserAccessOrder(order: {
 }
 
 export async function lookupOrderStatusAction(input: unknown) {
+  let destination = "";
   try {
     const context = await getServerActionRequestContext();
     const rate = checkRateLimit({
@@ -117,12 +118,15 @@ export async function lookupOrderStatusAction(input: unknown) {
       }
     }
 
-    redirect(`/order-status/${data.order_access_token}`);
+    destination = `/order-status/${data.order_access_token}`;
   } catch (error) {
     return {
       error: getErrorMessage(error)
     };
   }
+
+  // Next.js redirects throw internally; never swallow them in a catch block.
+  redirect(destination);
 }
 
 export async function sendCustomerOrderMessageAction(input: unknown) {
