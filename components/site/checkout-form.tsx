@@ -225,12 +225,21 @@ export function CheckoutForm({
         return;
       }
 
-      clearCart();
-
-      if (result.url) {
-        window.location.href = result.url;
+      if (!result.url) {
+        toast.error("Unable to open payment. Your cart is still saved.");
+        return;
       }
+
+      clearCart();
+      window.location.assign(result.url);
     });
+  }, (errors) => {
+    const firstError = Object.values(errors).find((error) => error?.message);
+    toast.error(
+      typeof firstError?.message === "string"
+        ? firstError.message
+        : "Please complete all required fields before placing your order."
+    );
   });
 
   if (items.length === 0) {
