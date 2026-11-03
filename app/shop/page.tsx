@@ -9,7 +9,6 @@ import { HowItWorksSection } from "@/components/site/how-it-works-section";
 import { ProductCard } from "@/components/site/product-card";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getCategories, getProducts } from "@/lib/data/queries";
 import { buildMetadata } from "@/lib/config/site";
@@ -21,6 +20,23 @@ export const metadata = buildMetadata({
     "Shop chocolate covered strawberries, cake pops, dessert boxes, and gift-ready treats made fresh in Killeen, TX for pickup and local delivery.",
   path: "/shop"
 });
+
+const categoryPriority = [
+  "thanksgiving", "autumn", "strawberr", "cake pop", "cakesicle", "oreo",
+  "cookie", "brownie", "pretzel", "gift", "box", "birthday", "themed",
+  "party", "custom", "seasonal"
+];
+
+function sortCategories<T extends CategoryRow>(categories: T[]): T[] {
+  const rank = (category: T) => {
+    const text = `${category.slug} ${category.name}`.toLowerCase();
+    const index = categoryPriority.findIndex((term) => text.includes(term));
+    return index < 0 ? categoryPriority.length : index;
+  };
+  return [...categories].sort(
+    (a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)
+  );
+}
 
 type ShopPageProps = {
   searchParams: Promise<{
@@ -40,11 +56,11 @@ function SearchForm({
   currentCategory?: string;
 }) {
   return (
-    <form className="grid gap-4 rounded-[2rem] border border-white/60 bg-white/80 p-5 shadow-card md:grid-cols-[1fr_220px_160px]">
+    <form className="grid gap-4 rounded-[2rem] border border-white/60 bg-white/80 p-5 shadow-card md:grid-cols-[minmax(0,1fr)_220px_160px]">
       <input
         name="q"
         defaultValue={currentQuery}
-        placeholder="Search berries, cupcake boxes, bundles..."
+        placeholder="Search treats, flavors, themes..."
         className="h-12 rounded-2xl border border-border bg-white/80 px-4 text-sm"
       />
       <select
@@ -52,8 +68,8 @@ function SearchForm({
         defaultValue={currentCategory ?? ""}
         className="h-12 rounded-2xl border border-border bg-white/80 px-4 text-sm"
       >
-        <option value="">All categories</option>
-        {categories.map((category: CategoryRow) => (
+        <option value="">All collections</option>
+        {sortCategories(categories).map((category: CategoryRow) => (
           <option key={category.id} value={category.slug}>
             {category.name}
           </option>
@@ -77,8 +93,8 @@ function CategoryShowcase({
   products: Awaited<ReturnType<typeof getProducts>>;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-      {categories
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+      {sortCategories(categories)
         .map((category: CategoryRow) => ({
           category,
           count: products.filter((product) => product.categories?.id === category.id).length
@@ -160,9 +176,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
     return matchesQuery && matchesCategory && matchesSeasonal;
   });
-  const optionalFeaturedProducts = filteredProducts.filter((product) =>
-    Boolean((product as typeof product & { is_featured?: unknown }).is_featured)
-  );
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const featuredA = a.featured ? 1 : 0;
+    const featuredB = b.featured ? 1 : 0;
+    return featuredB - featuredA || a.name.localeCompare(b.name);
+  });
+  const hasFilters = Boolean(params.q?.trim() || params.category || params.seasonal === "true");
 
   return (
     <div className="bg-[#F9F6F2]">
@@ -173,9 +192,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           description="Filter by category, search your favorites, and customize items directly from the product page."
           as="h1"
         />
-        <div className="mt-10">
-          <CategoryShowcase categories={categories} products={products} />
-        </div>
+        {!hasFilters ? (
+          <section aria-label="Shop by collection" className="mt-10">
+            <h2 className="mb-5 font-serif text-2xl text-bakery-espresso sm:text-3xl">Shop by collection</h2>
+            <CategoryShowcase categories={categories} products={products} />
+          </section>
+        ) : null}
         <div className="mt-8">
           <Suspense>
             <SearchForm
@@ -185,27 +207,25 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             />
           </Suspense>
         </div>
-        {optionalFeaturedProducts.length > 0 ? (
-          <section className="py-16">
-            <div className="flex items-end justify-between gap-6">
-              <SectionHeading
-                eyebrow="Featured Picks"
-                title="Most-loved treats right now"
-                description="A curated set of products marked for extra attention in the catalog."
-              />
-              <Button asChild variant="outline" className="hidden md:inline-flex">
-                <Link href="/custom-orders">Custom Order</Link>
-              </Button>
+        <section aria-label="Product catalog" className="mt-10">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-bakery-rose">Browse treats</p>
+              <h2 className="mt-2 font-serif text-3xl text-bakery-espresso">
+                {params.category
+                  ? categories.find((category) => category.slug === params.category)?.name ?? "Selected collection"
+                  : hasFilters ? "Search results" : "All treats"}
+              </h2>
             </div>
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {optionalFeaturedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
-        ) : null}
-        <HowItWorksSection />
-        <div className="mt-10">
+            <span className="text-sm text-muted-foreground">
+              {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+            </span>
+          </div>
+          {hasFilters ? (
+            <Link href="/shop" className="mb-6 inline-flex text-sm font-semibold text-bakery-rose underline underline-offset-4">
+              Clear filters and view all products
+            </Link>
+          ) : null}
           {filteredProducts.length === 0 ? (
             <EmptyState
               title="No products matched those filters"
@@ -213,12 +233,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {filteredProducts.map((product) => (
+              {sortedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           )}
-        </div>
+        </section>
+        <div className="mt-16"><HowItWorksSection /></div>
         <CustomDesignCta />
       </div>
     </div>
