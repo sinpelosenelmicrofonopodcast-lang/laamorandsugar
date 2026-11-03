@@ -172,7 +172,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-bakery-rose">Browse treats</p>
               <h2 className="mt-2 font-serif text-3xl text-bakery-espresso">
                 {params.category
-                  ? categories.find((category) => category.slug === params.category)?.name ?? "Selected collection"
+                  ? categories.find((category: CategoryRow) => category.slug === params.category)?.name ?? "Selected collection"
                   : hasFilters ? "Search results" : "All treats"}
               </h2>
             </div>
